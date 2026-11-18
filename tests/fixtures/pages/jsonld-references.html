@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Robotics Engineer | Ironbark Robotics</title>
+<meta property="og:site_name" content="Ironbark Engineering Blog">
+<!-- A "similar jobs" block comes first; its posting is nested, so it does not win. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Similar jobs",
+  "mainEntity": {
+    "@type": "ItemList",
+    "itemListElement": [
+      { "@type": "JobPosting", "title": "Warehouse Planner", "hiringOrganization": "Someone Else Ltd" }
+    ]
+  }
+}
+</script>
+<!-- The posting links its company and place by @id, as @graph pages do. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    { "@type": "WebSite", "@id": "https://jobs.example.com/#website", "name": "Ironbark Engineering Blog" },
+    {
+      "@type": "JobPosting",
+      "@id": "https://jobs.example.com/robotics-engineer#job",
+      "title": "",
+      "name": "Robotics Engineer",
+      "hiringOrganization": { "@id": "https://jobs.example.com/#org" },
+      "jobLocation": { "@type": "Place", "@id": "https://jobs.example.com/#hq" },
+      "description": "Build the arms.\nSalary <EUR 70k depending on experience.\n\nApply by May."
+    },
+    { "@type": "Organization", "@id": "https://jobs.example.com/#org", "name": "", "legalName": "Ironbark Robotics GmbH" },
+    {
+      "@type": "Place",
+      "@id": "https://jobs.example.com/#hq",
+      "address": { "@type": "PostalAddress", "addressLocality": "Stuttgart", "addressCountry": "DE" }
+    }
+  ]
+}
+</script>
+</head>
+<body><h1>Robotics Engineer</h1></body>
+</html>

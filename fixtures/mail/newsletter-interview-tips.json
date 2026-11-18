@@ -1,0 +1,103 @@
+{
+  "_note": "A newsletter that mentions \"interview\" (List-Unsubscribe, List-Id): not job mail. Its text/plain part carries preheader padding (U+034F and U+200C runs, literal &zwnj;&nbsp;).",
+  "id": "19a6d2c4e8f1a00c",
+  "threadId": "19a6d2c4e8f1a00c",
+  "labelIds": [
+    "INBOX",
+    "UNREAD",
+    "CATEGORY_PROMOTIONS"
+  ],
+  "snippet": "This week: interview questions, anchor positioning and a faster bundler",
+  "internalDate": "1794294000000",
+  "sizeEstimate": 3542,
+  "payload": {
+    "partId": "",
+    "mimeType": "multipart/alternative",
+    "filename": "",
+    "headers": [
+      {
+        "name": "Delivered-To",
+        "value": "demo@example.com"
+      },
+      {
+        "name": "MIME-Version",
+        "value": "1.0"
+      },
+      {
+        "name": "Date",
+        "value": "Tue, 10 Nov 2026 06:59:58 +0000"
+      },
+      {
+        "name": "Message-ID",
+        "value": "<19a6d2c4e8f1a00c.fixture@mail.example>"
+      },
+      {
+        "name": "Subject",
+        "value": "Frontend Weekly #87: 7 interview questions about React Server Components"
+      },
+      {
+        "name": "From",
+        "value": "Frontend Weekly <digest@frontendweekly.example>"
+      },
+      {
+        "name": "To",
+        "value": "demo@example.com"
+      },
+      {
+        "name": "List-Unsubscribe",
+        "value": "<https://frontendweekly.example/unsubscribe/a1b2c3>"
+      },
+      {
+        "name": "List-Id",
+        "value": "Frontend Weekly <weekly.frontendweekly.example>"
+      },
+      {
+        "name": "Content-Type",
+        "value": "multipart/alternative; boundary=\"news-alt\""
+      }
+    ],
+    "body": {
+      "size": 0
+    },
+    "parts": [
+      {
+        "partId": "0",
+        "mimeType": "text/plain",
+        "filename": "",
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "text/plain; charset=\"UTF-8\""
+          },
+          {
+            "name": "Content-Transfer-Encoding",
+            "value": "quoted-printable"
+          }
+        ],
+        "body": {
+          "size": 999,
+          "data": "VGhpcyB3ZWVrOiBpbnRlcnZpZXcgcXVlc3Rpb25zLCBhbmNob3IgcG9zaXRpb25pbmcgYW5kIGEgZmFzdGVyIGJ1bmRsZXIgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwgzY_igIwNCiZ6d25qOyZuYnNwOyZ6d25qOyZuYnNwOyZ6d25qOyZuYnNwOyZ6d25qOyZuYnNwOyZ6d25qOyZuYnNwOyZ6d25qOyZuYnNwOw0KDQpGUk9OVEVORCBXRUVLTFkgwrcgSVNTVUUgIzg3DQoNCg0KNyBpbnRlcnZpZXcgcXVlc3Rpb25zIGFib3V0IFJlYWN0IFNlcnZlciBDb21wb25lbnRzDQpXaGF0IGhpcmluZyBtYW5hZ2VycyBhc2ssIGFuZCB3aGF0IGdvb2QgYW5zd2VycyBzb3VuZCBsaWtlLg0KUmVhZDogaHR0cHM6Ly9mcm9udGVuZHdlZWtseS5leGFtcGxlL3IvODctMQ0KDQpDU1MgYW5jaG9yIHBvc2l0aW9uaW5nIGlzIHJlYWR5IGZvciBwcm9kdWN0aW9uDQpBIHByYWN0aWNhbCBndWlkZSB3aXRoIGZhbGxiYWNrcyBmb3Igb2xkZXIgYnJvd3NlcnMuDQpSZWFkOiBodHRwczovL2Zyb250ZW5kd2Vla2x5LmV4YW1wbGUvci84Ny0yDQoNCkEgZmFzdGVyIGJ1bmRsZXIsIG1lYXN1cmVkDQpXZSByZWJ1aWx0IHRocmVlIHJlYWwgcHJvamVjdHMgYW5kIGNvbXBhcmVkIGJ1aWxkIHRpbWVzLg0KUmVhZDogaHR0cHM6Ly9mcm9udGVuZHdlZWtseS5leGFtcGxlL3IvODctMw0KDQoNCllvdSBhcmUgcmVjZWl2aW5nIHRoaXMgYmVjYXVzZSB5b3Ugc3Vic2NyaWJlZCB0byBGcm9udGVuZCBXZWVrbHkuDQpVbnN1YnNjcmliZTogaHR0cHM6Ly9mcm9udGVuZHdlZWtseS5leGFtcGxlL3Vuc3Vic2NyaWJlL2ExYjJjMw0K"
+        }
+      },
+      {
+        "partId": "1",
+        "mimeType": "text/html",
+        "filename": "",
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "text/html; charset=\"UTF-8\""
+          },
+          {
+            "name": "Content-Transfer-Encoding",
+            "value": "quoted-printable"
+          }
+        ],
+        "body": {
+          "size": 1399,
+          "data": "PGh0bWw-PGJvZHk-DQo8ZGl2IHN0eWxlPSJkaXNwbGF5Om5vbmUiPlRoaXMgd2VlazogaW50ZXJ2aWV3IHF1ZXN0aW9ucywgYW5jaG9yIHBvc2l0aW9uaW5nIGFuZCBhIGZhc3RlciBidW5kbGVyJiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7JiM4NDc7Jnp3bmo7Jm5ic3A7PC9kaXY-DQo8aDE-RnJvbnRlbmQgV2Vla2x5ICZtaWRkb3Q7IElzc3VlICM4NzwvaDE-DQo8aDI-PGEgaHJlZj0iaHR0cHM6Ly9mcm9udGVuZHdlZWtseS5leGFtcGxlL3IvODctMSI-NyBpbnRlcnZpZXcgcXVlc3Rpb25zIGFib3V0IFJlYWN0IFNlcnZlciBDb21wb25lbnRzPC9hPjwvaDI-DQo8cD5XaGF0IGhpcmluZyBtYW5hZ2VycyBhc2ssIGFuZCB3aGF0IGdvb2QgYW5zd2VycyBzb3VuZCBsaWtlLjwvcD4NCjxoMj48YSBocmVmPSJodHRwczovL2Zyb250ZW5kd2Vla2x5LmV4YW1wbGUvci84Ny0yIj5DU1MgYW5jaG9yIHBvc2l0aW9uaW5nIGlzIHJlYWR5IGZvciBwcm9kdWN0aW9uPC9hPjwvaDI-DQo8cD5BIHByYWN0aWNhbCBndWlkZSB3aXRoIGZhbGxiYWNrcyBmb3Igb2xkZXIgYnJvd3NlcnMuPC9wPg0KPGgyPjxhIGhyZWY9Imh0dHBzOi8vZnJvbnRlbmR3ZWVrbHkuZXhhbXBsZS9yLzg3LTMiPkEgZmFzdGVyIGJ1bmRsZXIsIG1lYXN1cmVkPC9hPjwvaDI-DQo8cD5XZSByZWJ1aWx0IHRocmVlIHJlYWwgcHJvamVjdHMgYW5kIGNvbXBhcmVkIGJ1aWxkIHRpbWVzLjwvcD4NCjxwIHN0eWxlPSJmb250LXNpemU6MTFweCI-WW91IGFyZSByZWNlaXZpbmcgdGhpcyBiZWNhdXNlIHlvdSBzdWJzY3JpYmVkIHRvIEZyb250ZW5kIFdlZWtseS4gPGEgaHJlZj0iaHR0cHM6Ly9mcm9udGVuZHdlZWtseS5leGFtcGxlL3Vuc3Vic2NyaWJlL2ExYjJjMyI-VW5zdWJzY3JpYmU8L2E-PC9wPg0KPC9ib2R5PjwvaHRtbD4NCg"
+        }
+      }
+    ]
+  }
+}

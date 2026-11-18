@@ -1,0 +1,61 @@
+{
+  "_note": "Was the mock's INCOMING[0]: interview invitation for the demo job Ember Finance (applied). Plain text, 7bit.",
+  "id": "19a6d2c4e8f1a001",
+  "threadId": "19a6d2c4e8f1a001",
+  "labelIds": [
+    "INBOX",
+    "UNREAD",
+    "IMPORTANT",
+    "CATEGORY_PERSONAL"
+  ],
+  "snippet": "Hi, Thanks for applying to Ember Finance. We&#39;d love to schedule a call with one of our engineering managers. What&#39;s your availability this week? Ember Finance",
+  "internalDate": "1794410400000",
+  "sizeEstimate": 682,
+  "payload": {
+    "partId": "",
+    "mimeType": "text/plain",
+    "filename": "",
+    "headers": [
+      {
+        "name": "Delivered-To",
+        "value": "demo@example.com"
+      },
+      {
+        "name": "MIME-Version",
+        "value": "1.0"
+      },
+      {
+        "name": "Date",
+        "value": "Wed, 11 Nov 2026 15:19:58 +0000"
+      },
+      {
+        "name": "Message-ID",
+        "value": "<19a6d2c4e8f1a001.fixture@mail.example>"
+      },
+      {
+        "name": "Subject",
+        "value": "Interview invitation: Software Engineer"
+      },
+      {
+        "name": "From",
+        "value": "Ember Finance Talent <talent@emberfinance.co.example>"
+      },
+      {
+        "name": "To",
+        "value": "Alex Demo <demo@example.com>"
+      },
+      {
+        "name": "Content-Type",
+        "value": "text/plain; charset=\"UTF-8\""
+      },
+      {
+        "name": "Content-Transfer-Encoding",
+        "value": "7bit"
+      }
+    ],
+    "body": {
+      "size": 166,
+      "data": "SGksDQoNClRoYW5rcyBmb3IgYXBwbHlpbmcgdG8gRW1iZXIgRmluYW5jZS4gV2UnZCBsb3ZlIHRvIHNjaGVkdWxlIGEgY2FsbCB3aXRoIG9uZSBvZiBvdXIgZW5naW5lZXJpbmcgbWFuYWdlcnMuIFdoYXQncyB5b3VyIGF2YWlsYWJpbGl0eSB0aGlzIHdlZWs_DQoNCkVtYmVyIEZpbmFuY2UNCg"
+    }
+  }
+}

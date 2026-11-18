@@ -1,0 +1,35 @@
+# deps
+node_modules/
+
+# next
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# the old mock store wrote here; nothing does any more (a leftover folder can be deleted)
+.data/
+
+# env
+.env*
+!.env.example
+
+# os / editor
+.DS_Store
+*.log
+.claude/settings.local.json
+
+# vitest (JSON reports from --reporter=json)
+/.vitest/
+
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# the built Chrome extension (npm run build:extension)
+/extension/dist/
+
+# project docs (plans, setup notes): kept locally, not in the repo
+/docs/

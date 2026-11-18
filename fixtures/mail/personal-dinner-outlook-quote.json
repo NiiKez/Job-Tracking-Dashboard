@@ -1,0 +1,64 @@
+{
+  "_note": "Personal mail from a friend, not job related. German Outlook reply in windows-1252; the quoted earlier message (below \"Von: … Gesendet: …\") mentions a Vorstellungsgespräch, but quotes are stripped.",
+  "id": "19a6d2c4e8f1a00d",
+  "threadId": "19a6d2c4e8f1a00d",
+  "labelIds": [
+    "INBOX",
+    "UNREAD",
+    "CATEGORY_PERSONAL"
+  ],
+  "snippet": "Hi Alex, Samstag um 19 Uhr klingt super! Ich bringe einen Nachtisch mit. Liebe Grüße Sam",
+  "internalDate": "1794469200000",
+  "sizeEstimate": 1020,
+  "payload": {
+    "partId": "",
+    "mimeType": "text/plain",
+    "filename": "",
+    "headers": [
+      {
+        "name": "Delivered-To",
+        "value": "demo@example.com"
+      },
+      {
+        "name": "MIME-Version",
+        "value": "1.0"
+      },
+      {
+        "name": "Date",
+        "value": "Thu, 12 Nov 2026 08:39:58 +0100"
+      },
+      {
+        "name": "Message-ID",
+        "value": "<19a6d2c4e8f1a00d.fixture@mail.example>"
+      },
+      {
+        "name": "Subject",
+        "value": "AW: Abendessen am Samstag"
+      },
+      {
+        "name": "From",
+        "value": "Sam Rivera <sam.rivera@example.com>"
+      },
+      {
+        "name": "To",
+        "value": "Alex Demo <demo@example.com>"
+      },
+      {
+        "name": "Thread-Topic",
+        "value": "Abendessen am Samstag"
+      },
+      {
+        "name": "Content-Type",
+        "value": "text/plain; charset=\"Windows-1252\""
+      },
+      {
+        "name": "Content-Transfer-Encoding",
+        "value": "quoted-printable"
+      }
+    ],
+    "body": {
+      "size": 451,
+      "data": "SGkgQWxleCwNCg0KU2Ftc3RhZyB1bSAxOSBVaHIga2xpbmd0IHN1cGVyISBJY2ggYnJpbmdlIGVpbmVuIE5hY2h0aXNjaCBtaXQuDQoNCkxpZWJlIEdy_N9lDQpTYW0NCg0KX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18NClZvbjogQWxleCBEZW1vIDxkZW1vQGV4YW1wbGUuY29tPg0KR2VzZW5kZXQ6IE1vbnRhZywgOS4gTm92ZW1iZXIgMjAyNiAyMDoxNA0KQW46IFNhbSBSaXZlcmEgPHNhbS5yaXZlcmFAZXhhbXBsZS5jb20-DQpCZXRyZWZmOiBBYmVuZGVzc2VuIGFtIFNhbXN0YWcNCg0KSGFsbG8gU2FtLA0KDQpoYXN0IGR1IGFtIFNhbXN0YWcgWmVpdCBm_HIgZWluIEFiZW5kZXNzZW4_IEFtIERpZW5zdGFnIGhhYmUgaWNoIG1laW4gVm9yc3RlbGx1bmdzZ2VzcHLkY2ggaW4gTfxuY2hlbiwgZGFuYWNoIGJyYXVjaGUgaWNoIGRyaW5nZW5kIGVpbmUgUGF1c2UuDQoNCkFsZXgNCg"
+    }
+  }
+}

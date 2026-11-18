@@ -1,0 +1,666 @@
+/*
+ * The popup's styles, on the app's tokens (src/app/globals.css, DESIGN.md): the same neutral
+ * greys, near-black primary and one accent, in light and dark after the system setting.
+ * Plus Jakarta Sans is used when it is installed; Manifest V3 pages can't load Google Fonts,
+ * so a system UI font stands in otherwise. Controls are 36 px tall with 8 px corners, as the
+ * app's inputs and buttons.
+ */
+
+:root {
+  color-scheme: light;
+  --background: #ffffff;
+  --foreground: #171717;
+  --muted: #f4f4f4;
+  --muted-foreground: #6b6b6b;
+  --border: #e6e6e6;
+  --input: #dcdcdc;
+  --input-fill: transparent;
+  --ring: #171717;
+  --primary: #171717;
+  --primary-foreground: #fafafa;
+  --kbd-on-primary: rgb(255 255 255 / 0.2);
+  --surface-sunken: #fafafa;
+  --attention: #c2410c;
+  --attention-subtle: #fff3eb;
+  --destructive: #dc2626;
+  --radius: 8px;
+  --font: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --background: #141414;
+    --foreground: #ececec;
+    --muted: #222222;
+    --muted-foreground: #a3a3a3;
+    --border: rgb(255 255 255 / 0.09);
+    --input: rgb(255 255 255 / 0.14);
+    --input-fill: rgb(255 255 255 / 0.042);
+    --ring: #d4d4d4;
+    --primary: #ececec;
+    --primary-foreground: #141414;
+    --kbd-on-primary: rgb(0 0 0 / 0.12);
+    --surface-sunken: #101010;
+    --attention: #fb923c;
+    --attention-subtle: rgb(251 146 60 / 0.13);
+    --destructive: #f87171;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* On body, not html: Chrome gives extension pages a body font of its own (75 %, system-ui). */
+body {
+  margin: 0;
+  width: 380px;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 20px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Chrome caps a popup at 600 px: the content scrolls between the heading and the footer. */
+#root {
+  display: flex;
+  flex-direction: column;
+  max-height: 600px;
+}
+
+h1,
+p {
+  margin: 0;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--primary) 22%, transparent);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ------------------------------------------------------------------ screen */
+
+.screen-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px 10px;
+  min-height: 52px;
+}
+
+.screen-header h1 {
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.brand-mark svg {
+  width: 15px;
+  height: 15px;
+}
+
+.screen-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.lead {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--muted-foreground);
+}
+
+/* ------------------------------------------------------------------ fields */
+
+.connect-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.field label {
+  font-size: 14px;
+  line-height: 16px;
+  font-weight: 500;
+}
+
+.required {
+  margin-left: 2px;
+  color: var(--destructive);
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+input,
+textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--input);
+  border-radius: var(--radius);
+  background: var(--input-fill);
+  font-size: 14px;
+  outline: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+input {
+  height: 36px;
+  padding: 0 10px;
+}
+
+textarea {
+  display: block;
+  padding: 8px 10px;
+  line-height: 1.6;
+  min-height: 96px;
+  max-height: 240px;
+  resize: vertical;
+}
+
+textarea[hidden] {
+  display: none;
+}
+
+::placeholder {
+  color: var(--muted-foreground);
+  opacity: 1;
+}
+
+input.is-missing {
+  border-color: color-mix(in oklab, var(--attention) 60%, transparent);
+}
+
+input:focus-visible,
+textarea:focus-visible {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent);
+}
+
+/* After focus: a field with an error stays red while it is being fixed. */
+input[aria-invalid="true"] {
+  border-color: var(--destructive);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--destructive) 20%, transparent);
+}
+
+.hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--muted-foreground);
+}
+
+.hint svg {
+  width: 14px;
+  height: 14px;
+  margin-top: 1px;
+}
+
+.hint-missing {
+  color: var(--attention);
+}
+
+.hint-error {
+  color: var(--destructive);
+}
+
+.description-preview {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-sunken);
+  padding: 10px 12px;
+}
+
+.preview-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--muted-foreground);
+}
+
+.preview-empty {
+  font-style: italic;
+}
+
+.description-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.description-preview .description-bar {
+  margin-top: 8px;
+}
+
+.count {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------ buttons */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.button:focus-visible {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent);
+}
+
+.button:active {
+  transform: translateY(1px);
+}
+
+.button[aria-busy="true"] {
+  cursor: progress;
+}
+
+/* Connect while Chrome asks for access: it keeps the focus (aria-disabled, not disabled) but
+   takes no click, and looks it. */
+.button[aria-disabled="true"] {
+  opacity: 0.6;
+}
+
+.button-primary {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.button-primary:hover {
+  background: color-mix(in oklab, var(--primary) 82%, var(--background));
+}
+
+.button-outline {
+  border-color: var(--border);
+  background: var(--background);
+}
+
+.button-outline:hover {
+  background: var(--muted);
+}
+
+.button-ghost {
+  color: var(--muted-foreground);
+}
+
+.button-ghost:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+@media (prefers-color-scheme: dark) {
+  .button-outline {
+    border-color: var(--input);
+    background: color-mix(in oklab, var(--input) 30%, transparent);
+  }
+
+  .button-outline:hover {
+    background: color-mix(in oklab, var(--input) 50%, transparent);
+  }
+}
+
+.button-sm {
+  height: 28px;
+  padding: 0 10px;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.button-sm svg {
+  width: 14px;
+  height: 14px;
+}
+
+.button-block {
+  width: 100%;
+}
+
+kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  min-width: 20px;
+  margin-left: 2px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font: 500 11px/1 var(--font);
+}
+
+.button-primary kbd {
+  background: var(--kbd-on-primary);
+  color: var(--primary-foreground);
+}
+
+/* The form: heading, fields that scroll, and below them a bar with Save and Applied. */
+.screen-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.actions-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* The footer continues the bar: one hairline above both. */
+.screen-form + .footer {
+  border-top: 0;
+  padding-top: 0;
+}
+
+/* ------------------------------------------------------------------ notices */
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.notice > svg {
+  margin-top: 1px;
+  color: var(--muted-foreground);
+}
+
+.notice-attention {
+  border-color: color-mix(in oklab, var(--attention) 35%, transparent);
+  background: var(--attention-subtle);
+}
+
+.notice-attention > svg {
+  color: var(--attention);
+}
+
+.notice-attention strong {
+  font-weight: 600;
+}
+
+.notice-error {
+  border-color: color-mix(in oklab, var(--destructive) 35%, transparent);
+}
+
+.notice-error > svg,
+.notice-error .notice-content > p:first-child {
+  color: var(--destructive);
+}
+
+.notice-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.notice-detail {
+  color: var(--muted-foreground);
+}
+
+.notice-content .button {
+  margin-top: 6px;
+}
+
+/* ------------------------------------------------------------------ done */
+
+.done {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.done-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--muted);
+}
+
+.done-job {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.done-company,
+.done-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.done-company {
+  font-weight: 600;
+}
+
+.done-title {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--muted-foreground);
+}
+
+/* ------------------------------------------------------------------ footer */
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px 8px 16px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--muted-foreground);
+}
+
+/* Withdrawn site access, above the account: the notice keeps the footer's right edge. */
+.footer .notice {
+  margin: 4px 8px 6px 0;
+}
+
+.footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.account {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-host {
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.update {
+  padding-right: 8px;
+}
+
+.update a {
+  color: var(--foreground);
+  font-weight: 500;
+  text-underline-offset: 3px;
+}
+
+.update a:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ------------------------------------------------------------------ loading */
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skeleton span {
+  display: block;
+  border-radius: var(--radius);
+  background: var(--muted);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+.skeleton .skeleton-label {
+  width: 72px;
+  height: 14px;
+  margin-top: 10px;
+  border-radius: 4px;
+}
+
+.skeleton .skeleton-label:first-child {
+  margin-top: 0;
+}
+
+.skeleton-input {
+  height: 36px;
+}
+
+.skeleton-box {
+  height: 84px;
+}
+
+.spinner {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

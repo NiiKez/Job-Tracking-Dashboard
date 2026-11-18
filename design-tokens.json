@@ -1,0 +1,179 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "$description": "Ledger — design tokens for Job Tracker. W3C DTCG format. Source of truth for src/app/globals.css. Rationale in DESIGN.md.",
+
+  "color": {
+    "$type": "color",
+    "light": {
+      "paper":            { "$value": "#F6F4EF", "$description": "Page background. Warm off-white, not cream." },
+      "paper-raised":     { "$value": "#FDFCF9", "$description": "Index cards (board), inputs, popovers, dialogs." },
+      "paper-sunken":     { "$value": "#EEEBE4", "$description": "Board column wells, hover rows, code, decision strip." },
+      "ink":              { "$value": "#1D1B18", "$description": "Primary text, primary buttons, focus ring. 15.6:1 on paper." },
+      "ink-2":            { "$value": "#57524A", "$description": "Secondary text: roles, descriptions. 7.1:1 on paper." },
+      "ink-3":            { "$value": "#6F695F", "$description": "Tertiary text: dates, meta, closed entries. 4.95:1 on paper, 4.57:1 on sunken." },
+      "rule":             { "$value": "#E2DDD3", "$description": "Hairlines between rows and regions. Decorative, no contrast requirement." },
+      "rule-strong":      { "$value": "#CBC4B7", "$description": "Group dividers, masthead double rule." },
+      "control":          { "$value": "#8F887C", "$description": "Input / checkbox / switch boundaries. 3.19:1 on paper (WCAG 1.4.11)." },
+      "attention":        { "$value": "#B8381A", "$description": "Vermilion 'red pen'. ONLY for things that need the user: review counts, review reasons, destructive confirm. 5.28:1 on paper." },
+      "attention-hover":  { "$value": "#9E2F15" },
+      "attention-wash":   { "$value": "#F9E9E1", "$description": "Tint behind attention notes. attention text on it: 4.91:1." },
+      "on-attention":     { "$value": "#FDFCF9", "$description": "Text on attention fill. 5.66:1." },
+      "highlight":        { "$value": "#F2DC85", "$description": "Highlighter swipe behind matched keywords in emails. ink on it: 12.6:1." },
+      "highlight-ink":    { "$value": "#1D1B18" }
+    },
+    "dark": {
+      "paper":            { "$value": "#161412", "$description": "Warm carbon, not blue-slate." },
+      "paper-raised":     { "$value": "#1F1C19" },
+      "paper-sunken":     { "$value": "#100E0C" },
+      "ink":              { "$value": "#EDE8DF", "$description": "15.1:1 on paper." },
+      "ink-2":            { "$value": "#B5AD9F", "$description": "8.3:1 on paper." },
+      "ink-3":            { "$value": "#958D80", "$description": "5.6:1 on paper, 5.2:1 on raised." },
+      "rule":             { "$value": "#2E2A25" },
+      "rule-strong":      { "$value": "#423C35" },
+      "control":          { "$value": "#6E675D", "$description": "3.29:1 on paper." },
+      "attention":        { "$value": "#F06A47", "$description": "6.0:1 on paper." },
+      "attention-hover":  { "$value": "#F4846A" },
+      "attention-wash":   { "$value": "#352019", "$description": "attention on it: 5.0:1." },
+      "on-attention":     { "$value": "#161412", "$description": "6.0:1." },
+      "highlight":        { "$value": "#554922", "$description": "ink on it: 7.3:1." },
+      "highlight-ink":    { "$value": "#EDE8DF" }
+    }
+  },
+
+  "status": {
+    "$description": "Status = mark shape + label + ink color. Color is never the only carrier. Only the two 'progress' states get chroma; open states are ink/graphite, closed states fade.",
+    "saved":       { "mark": "ring",     "label": "Saved",       "group": "open",     "light": { "$type": "color", "$value": "#6F695F" }, "dark": { "$type": "color", "$value": "#958D80" }, "$description": "Pencilled in. Hollow ring." },
+    "applied":     { "mark": "dot",      "label": "Applied",     "group": "open",     "light": { "$type": "color", "$value": "#1D1B18" }, "dark": { "$type": "color", "$value": "#EDE8DF" }, "$description": "Inked. Solid dot." },
+    "interview":   { "mark": "diamond",  "label": "Interview",   "group": "progress", "light": { "$type": "color", "$value": "#2D4C7A" }, "dark": { "$type": "color", "$value": "#95AFDC" }, "$description": "Blue-black ink. 7.9:1 / 8.3:1." },
+    "offer":       { "mark": "bullseye", "label": "Offer",       "group": "progress", "light": { "$type": "color", "$value": "#2B6942" }, "dark": { "$type": "color", "$value": "#86C49D" }, "$description": "Green ink. 6.0:1 / 9.1:1." },
+    "rejected":    { "mark": "cross",    "label": "Rejected",    "group": "closed",   "light": { "$type": "color", "$value": "#6F695F" }, "dark": { "$type": "color", "$value": "#958D80" }, "$description": "Closed. Graphite, never red: a rejection is not an alarm." },
+    "no-response": { "mark": "dash",     "label": "No response", "group": "closed",   "light": { "$type": "color", "$value": "#6F695F" }, "dark": { "$type": "color", "$value": "#958D80" }, "$description": "Trailed off. Graphite dash." }
+  },
+
+  "font": {
+    "family": {
+      "$type": "fontFamily",
+      "serif": { "$value": ["Newsreader", "Iowan Old Style", "Georgia", "serif"], "$description": "Names of things: page titles, companies, roles as headings, empty-state notes. next/font axes: ['opsz']." },
+      "sans":  { "$value": ["Schibsted Grotesk", "ui-sans-serif", "system-ui", "sans-serif"], "$description": "Interface and data." },
+      "mono":  { "$value": ["IBM Plex Mono", "ui-monospace", "SFMono-Regular", "monospace"], "$description": "Email addresses, keyword phrases, kbd." }
+    },
+    "weight": {
+      "$type": "fontWeight",
+      "regular": { "$value": 400 },
+      "medium":  { "$value": 500 },
+      "semibold":{ "$value": 600 }
+    }
+  },
+
+  "typography": {
+    "$type": "typography",
+    "display":  { "$value": { "fontFamily": "{font.family.serif}", "fontSize": "40px", "lineHeight": "44px", "fontWeight": 400, "letterSpacing": "-0.015em" }, "$description": "Rare. Empty dashboard, extension intro." },
+    "title-1":  { "$value": { "fontFamily": "{font.family.serif}", "fontSize": "30px", "lineHeight": "36px", "fontWeight": 400, "letterSpacing": "-0.01em" }, "$description": "Page masthead h1, job detail h1." },
+    "title-2":  { "$value": { "fontFamily": "{font.family.serif}", "fontSize": "22px", "lineHeight": "28px", "fontWeight": 500, "letterSpacing": "-0.005em" }, "$description": "Section headings, settings groups." },
+    "title-3":  { "$value": { "fontFamily": "{font.family.serif}", "fontSize": "17px", "lineHeight": "24px", "fontWeight": 500, "letterSpacing": "0" }, "$description": "Entry names (company), group headers, email subjects." },
+    "numeral":  { "$value": { "fontFamily": "{font.family.serif}", "fontSize": "22px", "lineHeight": "28px", "fontWeight": 400, "letterSpacing": "0" }, "$description": "Summary-line counts. font-variant-numeric: lining-nums tabular-nums." },
+    "body":     { "$value": { "fontFamily": "{font.family.sans}",  "fontSize": "15px", "lineHeight": "24px", "fontWeight": 400, "letterSpacing": "0" }, "$description": "Reading text: descriptions, email bodies. Max 68ch." },
+    "ui":       { "$value": { "fontFamily": "{font.family.sans}",  "fontSize": "14px", "lineHeight": "20px", "fontWeight": 400, "letterSpacing": "0" }, "$description": "Default interface text, buttons (500), table cells." },
+    "meta":     { "$value": { "fontFamily": "{font.family.sans}",  "fontSize": "13px", "lineHeight": "18px", "fontWeight": 400, "letterSpacing": "0" }, "$description": "Dates, locations, counts, helper text." },
+    "label":    { "$value": { "fontFamily": "{font.family.sans}",  "fontSize": "12px", "lineHeight": "16px", "fontWeight": 600, "letterSpacing": "0.06em" }, "$description": "UPPERCASE column heads and eyebrows. Use sparingly." },
+    "mono":     { "$value": { "fontFamily": "{font.family.mono}",  "fontSize": "13px", "lineHeight": "18px", "fontWeight": 400, "letterSpacing": "0" }, "$description": "Addresses, keyword phrases." },
+    "$extensions": { "floor": "12px — nothing smaller ships." }
+  },
+
+  "space": {
+    "$type": "dimension",
+    "$description": "4px base. Matches Tailwind's default spacing (1 = 0.25rem). Canonical steps only.",
+    "0":   { "$value": "0px" },
+    "0.5": { "$value": "2px" },
+    "1":   { "$value": "4px" },
+    "1.5": { "$value": "6px" },
+    "2":   { "$value": "8px" },
+    "3":   { "$value": "12px" },
+    "4":   { "$value": "16px" },
+    "5":   { "$value": "20px" },
+    "6":   { "$value": "24px" },
+    "8":   { "$value": "32px" },
+    "10":  { "$value": "40px" },
+    "12":  { "$value": "48px" },
+    "16":  { "$value": "64px" },
+    "20":  { "$value": "80px" }
+  },
+
+  "layout": {
+    "$type": "dimension",
+    "sidebar":         { "$value": "232px" },
+    "sidebar-rail":    { "$value": "56px" },
+    "margin-column":   { "$value": "72px", "$description": "Left date/time column in list, activity, timeline." },
+    "gutter-desktop":  { "$value": "32px", "$description": ">= lg" },
+    "gutter-tablet":   { "$value": "24px", "$description": "md" },
+    "gutter-mobile":   { "$value": "16px", "$description": "< md" },
+    "measure":         { "$value": "68ch", "$description": "Max line length for reading text." },
+    "reading-main":    { "$value": "720px" },
+    "reading-aside":   { "$value": "280px" },
+    "board-column":    { "$value": "280px" },
+    "row-height":      { "$value": "48px", "$description": "List rows, settings rows." },
+    "control-sm":      { "$value": "32px" },
+    "control-md":      { "$value": "36px" },
+    "control-lg":      { "$value": "40px" },
+    "hit-min":         { "$value": "24px", "$description": "WCAG 2.2 2.5.8 floor for any interactive target." }
+  },
+
+  "breakpoint": {
+    "$type": "dimension",
+    "sm":  { "$value": "640px" },
+    "md":  { "$value": "768px" },
+    "lg":  { "$value": "1024px" },
+    "xl":  { "$value": "1280px" },
+    "2xl": { "$value": "1536px" }
+  },
+
+  "radius": {
+    "$type": "dimension",
+    "none": { "$value": "0px",    "$description": "Structure: tables, rules, sidebar, page." },
+    "xs":   { "$value": "2px",    "$description": "kbd, keyword chips, highlight swipes." },
+    "sm":   { "$value": "4px",    "$description": "Buttons, inputs, index cards. shadcn --radius." },
+    "md":   { "$value": "6px",    "$description": "Popovers, menus, dialogs, toasts." },
+    "full": { "$value": "9999px", "$description": "Status mark dots only. No pills." }
+  },
+
+  "border": {
+    "hairline": { "$type": "border", "$value": { "color": "{color.light.rule}", "width": "1px", "style": "solid" } },
+    "strong":   { "$type": "border", "$value": { "color": "{color.light.rule-strong}", "width": "1px", "style": "solid" } },
+    "masthead": { "$type": "border", "$value": { "color": "{color.light.rule-strong}", "width": "3px", "style": "double" }, "$description": "Signature ledger double rule. Once per page, under the masthead." },
+    "focus":    { "$type": "border", "$value": { "color": "{color.light.ink}", "width": "2px", "style": "solid" }, "$description": "outline, offset 2px." }
+  },
+
+  "shadow": {
+    "$type": "shadow",
+    "light": {
+      "card":    { "$value": "0 1px 0 0 rgb(29 27 24 / 0.05)", "$description": "Index card resting on paper. Paired with a hairline border." },
+      "overlay": { "$value": "0 1px 2px 0 rgb(29 27 24 / 0.06), 0 12px 32px -12px rgb(29 27 24 / 0.22)" },
+      "lift":    { "$value": "0 2px 4px 0 rgb(29 27 24 / 0.06), 0 20px 40px -16px rgb(29 27 24 / 0.32)", "$description": "Dragging only." }
+    },
+    "dark": {
+      "card":    { "$value": "none" },
+      "overlay": { "$value": "0 12px 32px -12px rgb(0 0 0 / 0.6)" },
+      "lift":    { "$value": "0 20px 40px -16px rgb(0 0 0 / 0.7)" }
+    }
+  },
+
+  "motion": {
+    "duration": {
+      "$type": "duration",
+      "fast": { "$value": "120ms", "$description": "Color, background, opacity on hover/press." },
+      "base": { "$value": "180ms", "$description": "Expand/collapse, popovers, menus." },
+      "slow": { "$value": "260ms", "$description": "Sheets, dialogs, drag settle." }
+    },
+    "easing": {
+      "$type": "cubicBezier",
+      "standard": { "$value": [0.2, 0, 0, 1] },
+      "enter":    { "$value": [0, 0, 0.2, 1] },
+      "exit":     { "$value": [0.4, 0, 1, 1] }
+    }
+  },
+
+  "icon": {
+    "size":   { "$type": "dimension", "$value": "16px" },
+    "stroke": { "$type": "number", "$value": 1.5, "$description": "lucide strokeWidth. Finer than the default 2." }
+  }
+}

@@ -1,0 +1,205 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-heading: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --color-surface-sunken: var(--surface-sunken);
+  --color-highlight: var(--highlight);
+  --color-highlight-foreground: var(--highlight-foreground);
+  --color-attention: var(--attention);
+  --color-attention-foreground: var(--attention-foreground);
+  --color-attention-subtle: var(--attention-subtle);
+  --color-lead: var(--lead);
+  --color-lead-foreground: var(--lead-foreground);
+  --color-lead-attention: var(--lead-attention);
+  --color-chart-sent: var(--chart-sent);
+  /* Type scale: 12 (xs) · 13 (meta) · 14 (sm) · 16 (base) · 18 (section) · 20 (xl) */
+  --text-meta: 0.8125rem;
+  --text-meta--line-height: 1.125rem;
+  /* Section headings on a page (Needs you, Overview…): one clear step above body text */
+  --text-section: 1.125rem;
+  --text-section--line-height: 1.75rem;
+  --text-section--letter-spacing: -0.01em;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* ------------------------------------------------------------------
+ * Tokens — see DESIGN.md. Neutral grey scale, near-black primary, and ONE
+ * accent ("attention") reserved for what needs the user: an offer, an overdue
+ * follow-up, an unmatched email. Statuses themselves are not coloured.
+ * ------------------------------------------------------------------ */
+:root {
+  --radius: 0.5rem;
+
+  --background: #ffffff;
+  --foreground: #171717;
+  --card: #ffffff;
+  --card-foreground: #171717;
+  --popover: #ffffff;
+  --popover-foreground: #171717;
+  --primary: #171717;
+  --primary-foreground: #fafafa;
+  --secondary: #f4f4f4;
+  --secondary-foreground: #171717;
+  --muted: #f4f4f4;
+  --muted-foreground: #6b6b6b;
+  --accent: #f0f0f0; /* shadcn: hover surface, not a brand colour */
+  --accent-foreground: #171717;
+  --destructive: #dc2626;
+  --border: #e6e6e6;
+  --input: #dcdcdc;
+  --ring: #171717;
+
+  /* App frame (sidebar + canvas behind the inset panel) */
+  --sidebar: #f7f7f7;
+  --sidebar-foreground: #3d3d3d;
+  --sidebar-primary: #171717;
+  --sidebar-primary-foreground: #fafafa;
+  --sidebar-accent: #ebebeb;
+  --sidebar-accent-foreground: #171717;
+  --sidebar-border: #e6e6e6;
+  --sidebar-ring: #171717;
+
+  /* Quiet background change (list group headers, notes) */
+  --surface-sunken: #fafafa;
+
+  /* The one accent: needs-you */
+  --attention: #c2410c;
+  --attention-foreground: #ffffff;
+  --attention-subtle: #fff3eb;
+
+  /* Keyword highlight inside email bodies */
+  --highlight: #fef08a;
+  --highlight-foreground: #422006;
+
+  /* The lead KPI tile ("Waiting for a reply"): a filled dark surface in both themes */
+  --lead: #171717;
+  --lead-foreground: #fafafa;
+  --lead-attention: #fb923c;
+
+  /* Charts and meters: neutral ink, never the accent */
+  --chart-sent: #171717;
+}
+
+.dark {
+  --background: #141414;
+  --foreground: #ececec;
+  --card: #141414;
+  --card-foreground: #ececec;
+  --popover: #1c1c1c;
+  --popover-foreground: #ececec;
+  --primary: #ececec;
+  --primary-foreground: #141414;
+  --secondary: #222222;
+  --secondary-foreground: #ececec;
+  --muted: #222222;
+  --muted-foreground: #a3a3a3;
+  --accent: #262626;
+  --accent-foreground: #ececec;
+  --destructive: #f87171;
+  --border: rgb(255 255 255 / 0.09);
+  --input: rgb(255 255 255 / 0.14);
+  --ring: #d4d4d4;
+
+  --sidebar: #0d0d0d;
+  --sidebar-foreground: #bdbdbd;
+  --sidebar-primary: #ececec;
+  --sidebar-primary-foreground: #141414;
+  --sidebar-accent: #1f1f1f;
+  --sidebar-accent-foreground: #ececec;
+  --sidebar-border: rgb(255 255 255 / 0.06);
+  --sidebar-ring: #d4d4d4;
+
+  --surface-sunken: #101010;
+
+  --attention: #fb923c;
+  --attention-foreground: #1a0d05;
+  --attention-subtle: rgb(251 146 60 / 0.13);
+
+  --highlight: rgb(250 204 21 / 0.28);
+  --highlight-foreground: #fef9c3;
+
+  --lead: #242424;
+  --lead-foreground: #ececec;
+  --lead-attention: #fb923c;
+
+  --chart-sent: #ececec;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  button:not(:disabled), [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+@layer base {
+  html {
+    font-feature-settings: "cv11", "ss01";
+    -webkit-tap-highlight-color: transparent;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--primary) 22%, transparent);
+  }
+}
+
+/* Numbers in tables/cards line up */
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

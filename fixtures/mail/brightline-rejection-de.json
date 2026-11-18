@@ -1,0 +1,64 @@
+{
+  "_note": "Was the mock's INCOMING[1]: German rejection for the demo job Brightline Energy (applied). UTF-8, quoted-printable already decoded by Gmail, Content-Language de-DE.",
+  "id": "19a6d2c4e8f1a002",
+  "threadId": "19a6d2c4e8f1a002",
+  "labelIds": [
+    "INBOX",
+    "UNREAD",
+    "CATEGORY_UPDATES"
+  ],
+  "snippet": "Guten Tag, leider können wir Ihre Bewerbung nicht weiter berücksichtigen. Wir haben uns für andere Kandidaten entschieden. Mit freundlichen Grüßen Brightline",
+  "internalDate": "1794470700000",
+  "sizeEstimate": 725,
+  "payload": {
+    "partId": "",
+    "mimeType": "text/plain",
+    "filename": "",
+    "headers": [
+      {
+        "name": "Delivered-To",
+        "value": "demo@example.com"
+      },
+      {
+        "name": "MIME-Version",
+        "value": "1.0"
+      },
+      {
+        "name": "Date",
+        "value": "Thu, 12 Nov 2026 09:04:58 +0100"
+      },
+      {
+        "name": "Message-ID",
+        "value": "<19a6d2c4e8f1a002.fixture@mail.example>"
+      },
+      {
+        "name": "Subject",
+        "value": "Ihre Bewerbung bei Brightline Energy"
+      },
+      {
+        "name": "From",
+        "value": "Brightline Energy <jobs@brightline-energy.example>"
+      },
+      {
+        "name": "To",
+        "value": "demo@example.com"
+      },
+      {
+        "name": "Content-Language",
+        "value": "de-DE"
+      },
+      {
+        "name": "Content-Type",
+        "value": "text/plain; charset=\"utf-8\""
+      },
+      {
+        "name": "Content-Transfer-Encoding",
+        "value": "quoted-printable"
+      }
+    ],
+    "body": {
+      "size": 178,
+      "data": "R3V0ZW4gVGFnLA0KDQpsZWlkZXIga8O2bm5lbiB3aXIgSWhyZSBCZXdlcmJ1bmcgbmljaHQgd2VpdGVyIGJlcsO8Y2tzaWNodGlnZW4uIFdpciBoYWJlbiB1bnMgZsO8ciBhbmRlcmUgS2FuZGlkYXRlbiBlbnRzY2hpZWRlbi4NCg0KTWl0IGZyZXVuZGxpY2hlbiBHcsO8w59lbg0KQnJpZ2h0bGluZSBFbmVyZ3kNCg"
+    }
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "_note": "Sent by the mailbox owner (label SENT, from demo@example.com): a reply in the thread of the demo job Northwind Labs. Its \"On … wrote:\" line is wrapped, as Gmail wraps it. The engine skips it; listMessageIds leaves it out, listAddedSince reports it.",
+  "id": "19a6d2c4e8f1a008",
+  "threadId": "19a4f1c2b3d40020",
+  "labelIds": [
+    "SENT"
+  ],
+  "snippet": "Hi Mara, thanks for the invitation! Thursday at 2 pm works well for me. Best, Alex",
+  "internalDate": "1794333720000",
+  "sizeEstimate": 2222,
+  "payload": {
+    "partId": "",
+    "mimeType": "multipart/alternative",
+    "filename": "",
+    "headers": [
+      {
+        "name": "MIME-Version",
+        "value": "1.0"
+      },
+      {
+        "name": "Date",
+        "value": "Tue, 10 Nov 2026 19:01:58 +0100"
+      },
+      {
+        "name": "Message-ID",
+        "value": "<19a6d2c4e8f1a008.fixture@mail.example>"
+      },
+      {
+        "name": "Subject",
+        "value": "Re: Next steps – Senior Frontend Engineer"
+      },
+      {
+        "name": "From",
+        "value": "Alex Demo <demo@example.com>"
+      },
+      {
+        "name": "To",
+        "value": "Mara Lindqvist <mara.lindqvist@northwindlabs.example>"
+      },
+      {
+        "name": "In-Reply-To",
+        "value": "<northwind-invite.fixture@mail.example>"
+      },
+      {
+        "name": "References",
+        "value": "<northwind-invite.fixture@mail.example>"
+      },
+      {
+        "name": "Content-Type",
+        "value": "multipart/alternative; boundary=\"sent-alt\""
+      }
+    ],
+    "body": {
+      "size": 0
+    },
+    "parts": [
+      {
+        "partId": "0",
+        "mimeType": "text/plain",
+        "filename": "",
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "text/plain; charset=\"UTF-8\""
+          },
+          {
+            "name": "Content-Transfer-Encoding",
+            "value": "7bit"
+          }
+        ],
+        "body": {
+          "size": 446,
+          "data": "SGkgTWFyYSwNCg0KdGhhbmtzIGZvciB0aGUgaW52aXRhdGlvbiEgVGh1cnNkYXkgYXQgMiBwbSB3b3JrcyB3ZWxsIGZvciBtZS4NCg0KQmVzdCwNCkFsZXgNCg0KT24gV2VkLCA0IE5vdiAyMDI2IGF0IDA5OjEyLCBNYXJhIExpbmRxdmlzdCA8bWFyYS5saW5kcXZpc3RAbm9ydGh3aW5kbGFicy5leGFtcGxlPg0Kd3JvdGU6DQoNCj4gSGksDQo-DQo-IFRoYW5rcyBhZ2FpbiBmb3IgeW91ciBhcHBsaWNhdGlvbi4gV2UgZW5qb3llZCByZWFkaW5nIGl0IGFuZCB3b3VsZCBsb3ZlIHRvIGludml0ZSB5b3UgdG8gYSBmaXJzdCBpbnRlcnZpZXcgd2l0aCBvdXIgZW5naW5lZXJpbmcgbGVhZC4NCj4NCj4gQ291bGQgeW91IHNoYXJlIHlvdXIgYXZhaWxhYmlsaXR5IGZvciBuZXh0IHdlZWs_IEEgNDUtbWludXRlIHZpZGVvIGNhbGwgd29ya3MgYmVzdC4NCj4NCj4gQ2hlZXJzLA0KPiBNYXJhDQo"
+        }
+      },
+      {
+        "partId": "1",
+        "mimeType": "text/html",
+        "filename": "",
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "text/html; charset=\"UTF-8\""
+          },
+          {
+            "name": "Content-Transfer-Encoding",
+            "value": "quoted-printable"
+          }
+        ],
+        "body": {
+          "size": 789,
+          "data": "PGRpdiBkaXI9Imx0ciI-SGkgTWFyYSw8ZGl2Pjxicj48L2Rpdj48ZGl2PnRoYW5rcyBmb3IgdGhlIGludml0YXRpb24hIFRodXJzZGF5IGF0IDIgcG0gd29ya3Mgd2VsbCBmb3IgbWUuPC9kaXY-PGRpdj48YnI-PC9kaXY-PGRpdj5CZXN0LDwvZGl2PjxkaXY-QWxleDwvZGl2PjwvZGl2Pjxicj48ZGl2IGNsYXNzPSJnbWFpbF9xdW90ZSI-PGRpdiBkaXI9Imx0ciIgY2xhc3M9ImdtYWlsX2F0dHIiPk9uIFdlZCwgNCBOb3YgMjAyNiBhdCAwOToxMiwgTWFyYSBMaW5kcXZpc3QgJmx0OzxhIGhyZWY9Im1haWx0bzptYXJhLmxpbmRxdmlzdEBub3J0aHdpbmRsYWJzLmV4YW1wbGUiPm1hcmEubGluZHF2aXN0QG5vcnRod2luZGxhYnMuZXhhbXBsZTwvYT4mZ3Q7IHdyb3RlOjxicj48L2Rpdj48YmxvY2txdW90ZSBjbGFzcz0iZ21haWxfcXVvdGUiIHN0eWxlPSJtYXJnaW46MHB4IDBweCAwcHggMC44ZXg7Ym9yZGVyLWxlZnQ6MXB4IHNvbGlkIHJnYigyMDQsMjA0LDIwNCk7cGFkZGluZy1sZWZ0OjFleCI-SGksPGJyPjxicj5UaGFua3MgYWdhaW4gZm9yIHlvdXIgYXBwbGljYXRpb24uIFdlIGVuam95ZWQgcmVhZGluZyBpdCBhbmQgd291bGQgbG92ZSB0byBpbnZpdGUgeW91IHRvIGEgZmlyc3QgaW50ZXJ2aWV3IHdpdGggb3VyIGVuZ2luZWVyaW5nIGxlYWQuPGJyPjxicj5Db3VsZCB5b3Ugc2hhcmUgeW91ciBhdmFpbGFiaWxpdHkgZm9yIG5leHQgd2Vlaz8gQSA0NS1taW51dGUgdmlkZW8gY2FsbCB3b3JrcyBiZXN0Ljxicj48YnI-Q2hlZXJzLDxicj5NYXJhPC9ibG9ja3F1b3RlPjwvZGl2Pg0K"
+        }
+      }
+    ]
+  }
+}

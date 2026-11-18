@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- icon.svg drawn on the 16 px grid for the toolbar (16 and 32 px): lines on whole pixels, no inner straps. -->
+  <rect width="16" height="16" rx="3.5" fill="#171717"/>
+  <g fill="none" stroke="#fafafa" stroke-width="1" stroke-linejoin="round">
+    <rect x="3.5" y="6.5" width="9" height="6" rx="1"/>
+    <path d="M5.5 6.5V5.5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1V6.5"/>
+  </g>
+</svg>

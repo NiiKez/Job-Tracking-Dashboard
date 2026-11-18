@@ -1,0 +1,140 @@
+{
+  "_note": "Offer for the demo job Nimbus Docs (interview). Its text parts arrive as attachment references (body.attachmentId, data in _attachments), next to a PDF attachment that is never read as the body.",
+  "id": "19a6d2c4e8f1a00b",
+  "threadId": "19a6d2c4e8f1a00b",
+  "labelIds": [
+    "INBOX",
+    "UNREAD",
+    "IMPORTANT",
+    "CATEGORY_PERSONAL"
+  ],
+  "snippet": "Hi Alex, thank you for the conversations over the past weeks. We are pleased to offer you the position of Product Engineer at Nimbus Docs, fully remote,",
+  "internalDate": "1794475800000",
+  "sizeEstimate": 1366,
+  "payload": {
+    "partId": "",
+    "mimeType": "multipart/mixed",
+    "filename": "",
+    "headers": [
+      {
+        "name": "Delivered-To",
+        "value": "demo@example.com"
+      },
+      {
+        "name": "MIME-Version",
+        "value": "1.0"
+      },
+      {
+        "name": "Date",
+        "value": "Thu, 12 Nov 2026 10:29:58 +0100"
+      },
+      {
+        "name": "Message-ID",
+        "value": "<19a6d2c4e8f1a00b.fixture@mail.example>"
+      },
+      {
+        "name": "Subject",
+        "value": "Your offer from Nimbus Docs – Product Engineer"
+      },
+      {
+        "name": "From",
+        "value": "Priya Raman <priya.raman@nimbusdocs.example>"
+      },
+      {
+        "name": "To",
+        "value": "Alex Demo <demo@example.com>"
+      },
+      {
+        "name": "Content-Type",
+        "value": "multipart/mixed; boundary=\"offer-mixed\""
+      }
+    ],
+    "body": {
+      "size": 0
+    },
+    "parts": [
+      {
+        "partId": "0",
+        "mimeType": "multipart/alternative",
+        "filename": "",
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "multipart/alternative; boundary=\"offer-alt\""
+          }
+        ],
+        "body": {
+          "size": 0
+        },
+        "parts": [
+          {
+            "partId": "0.0",
+            "mimeType": "text/plain",
+            "filename": "",
+            "headers": [
+              {
+                "name": "Content-Type",
+                "value": "text/plain; charset=\"UTF-8\""
+              },
+              {
+                "name": "Content-Transfer-Encoding",
+                "value": "quoted-printable"
+              }
+            ],
+            "body": {
+              "attachmentId": "ANGjdJ8fixtureOfferPlainText0001",
+              "size": 510
+            }
+          },
+          {
+            "partId": "0.1",
+            "mimeType": "text/html",
+            "filename": "",
+            "headers": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=\"UTF-8\""
+              },
+              {
+                "name": "Content-Transfer-Encoding",
+                "value": "quoted-printable"
+              }
+            ],
+            "body": {
+              "attachmentId": "ANGjdJ8fixtureOfferHtmlText00002",
+              "size": 575
+            }
+          }
+        ]
+      },
+      {
+        "partId": "1",
+        "mimeType": "application/pdf",
+        "filename": "Nimbus-Docs-Offer-Letter.pdf",
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "application/pdf; name=\"Nimbus-Docs-Offer-Letter.pdf\""
+          },
+          {
+            "name": "Content-Disposition",
+            "value": "attachment; filename=\"Nimbus-Docs-Offer-Letter.pdf\""
+          },
+          {
+            "name": "Content-Transfer-Encoding",
+            "value": "base64"
+          }
+        ],
+        "body": {
+          "attachmentId": "ANGjdJ8fixtureOfferLetterPdf0003",
+          "size": 64
+        }
+      }
+    ]
+  },
+  "_attachments": {
+    "ANGjdJ8fixtureOfferPlainText0001": "SGkgQWxleCwNCg0KdGhhbmsgeW91IGZvciB0aGUgY29udmVyc2F0aW9ucyBvdmVyIHRoZSBwYXN0IHdlZWtzLiBXZSBhcmUgcGxlYXNlZCB0byBvZmZlciB5b3UgdGhlIHBvc2l0aW9uIG9mIFByb2R1Y3QgRW5naW5lZXIgYXQgTmltYnVzIERvY3MsIGZ1bGx5IHJlbW90ZSwgc3RhcnRpbmcgb24gMSBGZWJydWFyeSAyMDI3Lg0KDQpZb3UnbGwgZmluZCB0aGUgb2ZmZXIgbGV0dGVyIGF0dGFjaGVkLiBJdCBjb3ZlcnMgdGhlIHNhbGFyeSwgZXF1aXR5IGFuZCBiZW5lZml0cyB3ZSBkaXNjdXNzZWQuIFBsZWFzZSBsZXQgdXMga25vdyBieSBGcmlkYXkgbmV4dCB3ZWVrIHdoZXRoZXIgeW91IGFjY2VwdCwgYW5kIGRvbid0IGhlc2l0YXRlIHRvIGNhbGwgbWUgd2l0aCBhbnkgcXVlc3Rpb25zLg0KDQpXZSBhcmUgZXhjaXRlZCBhYm91dCB0aGUgcHJvc3BlY3Qgb2Ygd29ya2luZyB3aXRoIHlvdSENCg0KV2FybSByZWdhcmRzLA0KUHJpeWEgUmFtYW4NClRhbGVudCBQYXJ0bmVyLCBOaW1idXMgRG9jcw0K",
+    "ANGjdJ8fixtureOfferHtmlText00002": "PGh0bWw-PGJvZHk-PHA-SGkgQWxleCw8L3A-DQo8cD50aGFuayB5b3UgZm9yIHRoZSBjb252ZXJzYXRpb25zIG92ZXIgdGhlIHBhc3Qgd2Vla3MuIFdlIGFyZSBwbGVhc2VkIHRvIG9mZmVyIHlvdSB0aGUgcG9zaXRpb24gb2YgUHJvZHVjdCBFbmdpbmVlciBhdCBOaW1idXMgRG9jcywgZnVsbHkgcmVtb3RlLCBzdGFydGluZyBvbiAxIEZlYnJ1YXJ5IDIwMjcuPC9wPg0KPHA-WW91JiMzOTtsbCBmaW5kIHRoZSBvZmZlciBsZXR0ZXIgYXR0YWNoZWQuIEl0IGNvdmVycyB0aGUgc2FsYXJ5LCBlcXVpdHkgYW5kIGJlbmVmaXRzIHdlIGRpc2N1c3NlZC4gUGxlYXNlIGxldCB1cyBrbm93IGJ5IEZyaWRheSBuZXh0IHdlZWsgd2hldGhlciB5b3UgYWNjZXB0LCBhbmQgZG9uJiMzOTt0IGhlc2l0YXRlIHRvIGNhbGwgbWUgd2l0aCBhbnkgcXVlc3Rpb25zLjwvcD4NCjxwPldlIGFyZSBleGNpdGVkIGFib3V0IHRoZSBwcm9zcGVjdCBvZiB3b3JraW5nIHdpdGggeW91ITwvcD4NCjxwPldhcm0gcmVnYXJkcyw8YnI-UHJpeWEgUmFtYW48YnI-VGFsZW50IFBhcnRuZXIsIE5pbWJ1cyBEb2NzPC9wPjwvYm9keT48L2h0bWw-DQo",
+    "ANGjdJ8fixtureOfferLetterPdf0003": "JVBERi0xLjQKJSBJbnZlbnRlZCBwbGFjZWhvbGRlciwgbm90IGEgcmVhbCBvZmZlciBsZXR0ZXIuCiUlRU9GCg"
+  }
+}

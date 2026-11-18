@@ -1,0 +1,25 @@
+The extension's icons: the app's brand mark (the sidebar's), lucide's briefcase on the primary
+colour #171717.
+
+  icon.svg          the mark, rendered at 48 and 128 px (chrome://extensions)
+  icon-small.svg    the same drawn on the 16 px grid, rendered at 16 and 32 px (the toolbar):
+                    lines on whole pixels and no inner straps, so it stays sharp that small
+  icon-<size>.png   what the manifest names; build.mjs copies them
+
+The PNGs are rendered in Chromium (Playwright is installed), nothing else is needed. After
+changing an SVG, from the repo root, render each at its sizes with a transparent background:
+
+  node --input-type=module -e '
+    import { chromium } from "@playwright/test";
+    import { readFileSync } from "node:fs";
+    const browser = await chromium.launch();
+    const page = await browser.newPage();
+    for (const [file, sizes] of [["icon-small.svg", [16, 32]], ["icon.svg", [48, 128]]]) {
+      const svg = readFileSync(`extension/icons/${file}`, "utf8");
+      for (const size of sizes) {
+        await page.setViewportSize({ width: size, height: size });
+        await page.setContent(`<body style="margin:0">${svg.replace(/width="\d+" height="\d+"/, `width="${size}" height="${size}"`)}</body>`);
+        await page.locator("svg").screenshot({ path: `extension/icons/icon-${size}.png`, omitBackground: true });
+      }
+    }
+    await browser.close();'

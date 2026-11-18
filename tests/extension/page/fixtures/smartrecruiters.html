@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<!-- Invented posting in the structure of a SmartRecruiters job page (jobs.smartrecruiters.com/<Company>/
+     <id>-<title>): schema.org microdata, the <spl-job-location> web component, the four st-… sections,
+     the "I'm interested" button and other jobs. -->
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Lagerlogistiker (m/w/d) | Juniper Ridge Logistics</title>
+  <meta property="og:title" content="Lagerlogistiker (m/w/d)">
+  <meta property="og:site_name" content="SmartRecruiters">
+</head>
+<body>
+  <div class="header"><img class="header-logo" alt="Juniper Ridge Logistics" src="https://c.smartrecruiters.com/sr-company-logo.png"></div>
+  <main class="jobad-main job" itemscope itemtype="http://schema.org/JobPosting">
+    <header class="job-header">
+      <div itemprop="hiringOrganization" itemscope itemtype="http://schema.org/Organization">
+        <meta itemprop="name" content="Juniper Ridge Logistics">
+        <meta itemprop="description" content="Lager und Logistik im Norden">
+      </div>
+      <h1 class="job-title" itemprop="title">Lagerlogistiker (m/w/d)</h1>
+      <ul class="job-details">
+        <li class="job-detail"><spl-job-location formattedaddress="Bremen, Bremen, Germany" fulllocation="Überseestadt, Bremen" hidelocation="false"></spl-job-location></li>
+        <li class="job-detail">Vollzeit</li>
+      </ul>
+      <spl-button data-test="topbar-i-am-interested" variant="primary">Ich bin interessiert</spl-button>
+    </header>
+    <div itemprop="description" class="job-sections">
+      <section id="st-companyDescription" class="job-section"><h2 class="title title--section">Unternehmensbeschreibung</h2><div class="wysiwyg"><p>Juniper Ridge betreibt Lager in Bremen und Hamburg.</p></div></section>
+      <section id="st-jobDescription" class="job-section"><h2 class="title title--section">Stellenbeschreibung</h2><div class="wysiwyg" itemprop="responsibilities"><ul><li>Wareneingang und Kommissionierung</li><li>Staplerfahren</li></ul></div></section>
+      <section id="st-qualifications" class="job-section"><h2 class="title title--section">Qualifikationen</h2><div class="wysiwyg" itemprop="qualifications"><ul><li>Ausbildung als Fachkraft für Lagerlogistik</li></ul></div></section>
+      <section id="st-additionalInformation" class="job-section"><h2 class="title title--section">Zusätzliche Informationen</h2><div class="wysiwyg" itemprop="incentives"><p>Schichtzulagen und ein Jobrad.</p></div></section>
+    </div>
+  </main>
+  <section class="similar-jobs"><h2>Weitere Stellen</h2><ul><li><a href="https://jobs.smartrecruiters.com/JuniperRidge/744000000000002-disponent">Disponent (m/w/d)</a></li></ul></section>
+  <footer>Powered by SmartRecruiters <a href="https://www.smartrecruiters.com/privacy-policy/">Datenschutz</a></footer>
+</body>
+</html>

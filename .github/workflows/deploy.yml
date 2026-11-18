@@ -1,0 +1,52 @@
+# Deploy: after a PR is merged into main, run CI on the merged code, then ship that build to the
+# server. Can also be started by hand: Actions -> Deploy -> Run workflow (main only).
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deploy at a time. A newer merge waits for the running one instead of cancelling it.
+concurrency:
+  group: deploy-qa
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: deploy
+    needs: ci
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # The DEPLOY_* secrets live in the "qa" environment (Settings -> Environments), main only.
+    environment: qa
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release
+
+      - name: Ship the release to the server
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          for s in DEPLOY_SSH_KEY DEPLOY_HOST DEPLOY_KNOWN_HOSTS; do
+            [ -n "${!s}" ] || { echo "::error::Secret $s is missing (Settings -> Environments -> qa)"; exit 1; }
+          done
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          # On the server this key may only run "deploy <sha>", with the release on stdin.
+          # The server switches over, health-checks, and rolls back by itself on failure.
+          ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o IdentitiesOnly=yes \
+              -o ConnectTimeout=20 -o ServerAliveInterval=15 \
+              "deploy@$DEPLOY_HOST" "deploy $GITHUB_SHA" < release.tgz

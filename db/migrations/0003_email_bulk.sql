@@ -1,0 +1,12 @@
+-- 0003_email_bulk.sql: whether a stored email came with bulk-mail headers.
+--
+-- The pipeline is more careful with bulk mail (List-Unsubscribe, List-Id, Precedence
+-- bulk/list/junk): the headers cancel one weak piece of evidence, and bulk mail that only its
+-- sender ties to a job never changes a job by itself. The headers were read when the mail was
+-- ingested and not kept, so mail that is classified again later ("Check again" on the review
+-- list, src/lib/server/services/recheck.ts) could not follow those rules.
+--
+-- Safe while the previous release still runs: one nullable column, which that release leaves
+-- out of its inserts. NULL means unknown: mail stored before this column, and mail that is not
+-- from Gmail (the seed).
+ALTER TABLE emails ADD COLUMN bulk boolean;

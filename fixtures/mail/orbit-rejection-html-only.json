@@ -1,0 +1,60 @@
+{
+  "_note": "Rejection for the demo job Orbit Payments (applied), HTML only: layout tables, a hidden preheader with &zwnj; padding, a logo and links whose addresses must not reach the text.",
+  "id": "19a6d2c4e8f1a005",
+  "threadId": "19a6d2c4e8f1a005",
+  "labelIds": [
+    "INBOX",
+    "UNREAD",
+    "CATEGORY_UPDATES"
+  ],
+  "snippet": "An update on your application Hi Alex, Thank you for applying for the Frontend Engineer, Checkout role at Orbit Payments and for the time you put into your",
+  "internalDate": "1794215700000",
+  "sizeEstimate": 2101,
+  "payload": {
+    "partId": "",
+    "mimeType": "text/html",
+    "filename": "",
+    "headers": [
+      {
+        "name": "Delivered-To",
+        "value": "demo@example.com"
+      },
+      {
+        "name": "MIME-Version",
+        "value": "1.0"
+      },
+      {
+        "name": "Date",
+        "value": "Mon, 9 Nov 2026 10:14:58 +0100"
+      },
+      {
+        "name": "Message-ID",
+        "value": "<19a6d2c4e8f1a005.fixture@mail.example>"
+      },
+      {
+        "name": "Subject",
+        "value": "Your application for Frontend Engineer, Checkout"
+      },
+      {
+        "name": "From",
+        "value": "Orbit Payments Talent <talent@orbitpayments.example>"
+      },
+      {
+        "name": "To",
+        "value": "demo@example.com"
+      },
+      {
+        "name": "Content-Type",
+        "value": "text/html; charset=\"UTF-8\""
+      },
+      {
+        "name": "Content-Transfer-Encoding",
+        "value": "quoted-printable"
+      }
+    ],
+    "body": {
+      "size": 1492,
+      "data": "PCFET0NUWVBFIGh0bWw-DQo8aHRtbD48aGVhZD48bWV0YSBjaGFyc2V0PSJ1dGYtOCI-PHRpdGxlPk9yYml0IFBheW1lbnRzPC90aXRsZT4NCjxzdHlsZT5ib2R5e2ZvbnQtZmFtaWx5OkFyaWFsLHNhbnMtc2VyaWY7Y29sb3I6IzIyMn0uZm9vdGVye2ZvbnQtc2l6ZToxMXB4O2NvbG9yOiM4ODh9PC9zdHlsZT48L2hlYWQ-DQo8Ym9keT4NCjxkaXYgc3R5bGU9ImRpc3BsYXk6bm9uZTttYXgtaGVpZ2h0OjA7b3ZlcmZsb3c6aGlkZGVuIj5BbiB1cGRhdGUgb24geW91ciBhcHBsaWNhdGlvbiZ6d25qOyZuYnNwOyZ6d25qOyZuYnNwOyYjODQ3OyZ6d25qOyZuYnNwOyYjODQ3OyZ6d25qOyZuYnNwOyYjODQ3OyZ6d25qOyZuYnNwOyYjODQ3OyZ6d25qOyZuYnNwOyYjODQ3OyZ6d25qOyZuYnNwOzwvZGl2Pg0KPHRhYmxlIHJvbGU9InByZXNlbnRhdGlvbiIgd2lkdGg9IjEwMCUiIGNlbGxwYWRkaW5nPSIwIiBjZWxsc3BhY2luZz0iMCI-PHRyPjx0ZCBhbGlnbj0iY2VudGVyIj4NCjx0YWJsZSByb2xlPSJwcmVzZW50YXRpb24iIHdpZHRoPSI2MDAiIGNlbGxwYWRkaW5nPSIwIiBjZWxsc3BhY2luZz0iMCI-DQo8dHI-PHRkPjxpbWcgc3JjPSJodHRwczovL29yYml0cGF5bWVudHMuZXhhbXBsZS9tYWlsL2xvZ28ucG5nIiBhbHQ9Ik9yYml0IFBheW1lbnRzIiB3aWR0aD0iMTIwIj48L3RkPjwvdHI-DQo8dHI-PHRkIHN0eWxlPSJwYWRkaW5nOjI0cHgiPg0KPHA-SGkgQWxleCw8L3A-DQo8cD5UaGFuayB5b3UgZm9yIGFwcGx5aW5nIGZvciB0aGUgPHN0cm9uZz5Gcm9udGVuZCBFbmdpbmVlciwgQ2hlY2tvdXQ8L3N0cm9uZz4gcm9sZSBhdCBPcmJpdCBQYXltZW50cyBhbmQgZm9yIHRoZSB0aW1lIHlvdSBwdXQgaW50byB5b3VyIGFwcGxpY2F0aW9uLjwvcD4NCjxwPlVuZm9ydHVuYXRlbHksIHdlIGhhdmUgZGVjaWRlZCB0byBtb3ZlIGZvcndhcmQgd2l0aCBvdGhlciBjYW5kaWRhdGVzIHdob3NlIGV4cGVyaWVuY2UgbW9yZSBjbG9zZWx5IG1hdGNoZXMgd2hhdCB0aGUgdGVhbSBuZWVkcyByaWdodCBub3cuPC9wPg0KPHA-V2Ugd291bGQgYmUgaGFwcHkgdG8gc2VlIHlvdSBhcHBseSBhZ2Fpbi4gWW91IGNhbiBmaW5kIGFsbCBvcGVuIHJvbGVzIG9uIG91ciA8YSBocmVmPSJodHRwczovL29yYml0cGF5bWVudHMuZXhhbXBsZS9jYXJlZXJzP3V0bV9zb3VyY2U9YXRzJmFtcDt1dG1fbWVkaXVtPWVtYWlsIj5jYXJlZXJzIHBhZ2U8L2E-LjwvcD4NCjxwPkJlc3Qgd2lzaGVzLDxicj5UaGUgT3JiaXQgUGF5bWVudHMgVGFsZW50IFRlYW08L3A-DQo8L3RkPjwvdHI-DQo8dHI-PHRkIGNsYXNzPSJmb290ZXIiPk9yYml0IFBheW1lbnRzIEdtYkggJm1pZGRvdDsgVG9yc3RyYSZzemxpZztlIDEgJm1pZGRvdDsgMTAxMTkgQmVybGluPGJyPjxhIGhyZWY9Imh0dHBzOi8vb3JiaXRwYXltZW50cy5leGFtcGxlL3ByaXZhY3kiPlByaXZhY3k8L2E-PC90ZD48L3RyPg0KPC90YWJsZT4NCjwvdGQ-PC90cj48L3RhYmxlPg0KPC9ib2R5PjwvaHRtbD4NCg"
+    }
+  }
+}

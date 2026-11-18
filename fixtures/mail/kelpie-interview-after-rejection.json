@@ -1,0 +1,61 @@
+{
+  "_note": "Interview invitation for the demo job Kelpie Analytics, Data Visualization Engineer, which is already rejected: the status cannot move on its own, so it goes to review (status_mismatch) with that job suggested first. Plain text.",
+  "id": "19a6d2c4e8f1a00e",
+  "threadId": "19a6d2c4e8f1a00e",
+  "labelIds": [
+    "INBOX",
+    "UNREAD",
+    "IMPORTANT",
+    "CATEGORY_PERSONAL"
+  ],
+  "snippet": "Hi Alex, we closed your application for the Data Visualization Engineer role last month, but our hiring plan has changed since then and the team would like to",
+  "internalDate": "1794328800000",
+  "sizeEstimate": 910,
+  "payload": {
+    "partId": "",
+    "mimeType": "text/plain",
+    "filename": "",
+    "headers": [
+      {
+        "name": "Delivered-To",
+        "value": "demo@example.com"
+      },
+      {
+        "name": "MIME-Version",
+        "value": "1.0"
+      },
+      {
+        "name": "Date",
+        "value": "Tue, 10 Nov 2026 16:39:58 +0000"
+      },
+      {
+        "name": "Message-ID",
+        "value": "<19a6d2c4e8f1a00e.fixture@mail.example>"
+      },
+      {
+        "name": "Subject",
+        "value": "Data Visualization Engineer: a second look"
+      },
+      {
+        "name": "From",
+        "value": "Ines Moreau <ines.moreau@kelpie-analytics.example>"
+      },
+      {
+        "name": "To",
+        "value": "Alex Demo <demo@example.com>"
+      },
+      {
+        "name": "Content-Type",
+        "value": "text/plain; charset=\"UTF-8\""
+      },
+      {
+        "name": "Content-Transfer-Encoding",
+        "value": "7bit"
+      }
+    ],
+    "body": {
+      "size": 380,
+      "data": "SGkgQWxleCwNCg0Kd2UgY2xvc2VkIHlvdXIgYXBwbGljYXRpb24gZm9yIHRoZSBEYXRhIFZpc3VhbGl6YXRpb24gRW5naW5lZXIgcm9sZSBsYXN0IG1vbnRoLCBidXQgb3VyIGhpcmluZyBwbGFuIGhhcyBjaGFuZ2VkIHNpbmNlIHRoZW4gYW5kIHRoZSB0ZWFtIHdvdWxkIGxpa2UgdG8gbWVldCB5b3UgYWZ0ZXIgYWxsLg0KDQpXb3VsZCB5b3UgYmUgb3BlbiB0byBhIHZpZGVvIGludGVydmlldyB3aXRoIG91ciBhbmFseXRpY3MgbGVhZCBuZXh0IHdlZWs_IFBsZWFzZSBzZW5kIG1lIHlvdXIgYXZhaWxhYmlsaXR5IGZvciBUdWVzZGF5IG9yIFdlZG5lc2RheS4NCg0KQmVzdCByZWdhcmRzLA0KSW5lcyBNb3JlYXUNClBlb3BsZSBUZWFtLCBLZWxwaWUgQW5hbHl0aWNzDQo"
+    }
+  }
+}

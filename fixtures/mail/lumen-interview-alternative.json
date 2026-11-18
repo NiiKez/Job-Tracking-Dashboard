@@ -1,0 +1,96 @@
+{
+  "_note": "Interview invitation for the demo job Lumen Health (applied). multipart/alternative: text/plain wins over the HTML (which has a table of slots). Subject arrives decoded (en dash).",
+  "id": "19a6d2c4e8f1a006",
+  "threadId": "19a6d2c4e8f1a006",
+  "labelIds": [
+    "INBOX",
+    "UNREAD",
+    "IMPORTANT",
+    "CATEGORY_PERSONAL"
+  ],
+  "snippet": "Hi Alex, Thank you for applying for the Product Engineer (React) role. We would like to invite you to a 45-minute video interview with our engineering lead,",
+  "internalDate": "1794304800000",
+  "sizeEstimate": 1858,
+  "payload": {
+    "partId": "",
+    "mimeType": "multipart/alternative",
+    "filename": "",
+    "headers": [
+      {
+        "name": "Delivered-To",
+        "value": "demo@example.com"
+      },
+      {
+        "name": "MIME-Version",
+        "value": "1.0"
+      },
+      {
+        "name": "Date",
+        "value": "Tue, 10 Nov 2026 10:59:58 +0100"
+      },
+      {
+        "name": "Message-ID",
+        "value": "<19a6d2c4e8f1a006.fixture@mail.example>"
+      },
+      {
+        "name": "Subject",
+        "value": "Interview invitation – Product Engineer (React)"
+      },
+      {
+        "name": "From",
+        "value": "Lumen Health People Team <careers@lumenhealth.example>"
+      },
+      {
+        "name": "To",
+        "value": "Alex Demo <demo@example.com>"
+      },
+      {
+        "name": "Content-Type",
+        "value": "multipart/alternative; boundary=\"lumen-alt\""
+      }
+    ],
+    "body": {
+      "size": 0
+    },
+    "parts": [
+      {
+        "partId": "0",
+        "mimeType": "text/plain",
+        "filename": "",
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "text/plain; charset=\"UTF-8\""
+          },
+          {
+            "name": "Content-Transfer-Encoding",
+            "value": "quoted-printable"
+          }
+        ],
+        "body": {
+          "size": 367,
+          "data": "SGkgQWxleCwNCg0KVGhhbmsgeW91IGZvciBhcHBseWluZyBmb3IgdGhlIFByb2R1Y3QgRW5naW5lZXIgKFJlYWN0KSByb2xlLiBXZSB3b3VsZCBsaWtlIHRvIGludml0ZSB5b3UgdG8gYSA0NS1taW51dGUgdmlkZW8gaW50ZXJ2aWV3IHdpdGggb3VyIGVuZ2luZWVyaW5nIGxlYWQsIFRvbcOhcyBGZXJyZWlyYS4NCg0KUGxlYXNlIHJlcGx5IHdpdGggdGhlIHNsb3QgdGhhdCBzdWl0cyB5b3UgYmVzdDoNCg0KLSBUdWVzZGF5LCAxMDowMOKAkzEwOjQ1IENFVA0KLSBXZWRuZXNkYXksIDE0OjAw4oCTMTQ6NDUgQ0VUDQotIFRodXJzZGF5LCAxNjozMOKAkzE3OjE1IENFVA0KDQpXYXJtIHJlZ2FyZHMsDQpMdW1lbiBIZWFsdGggUGVvcGxlIFRlYW0NCg"
+        }
+      },
+      {
+        "partId": "1",
+        "mimeType": "text/html",
+        "filename": "",
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "text/html; charset=\"UTF-8\""
+          },
+          {
+            "name": "Content-Transfer-Encoding",
+            "value": "quoted-printable"
+          }
+        ],
+        "body": {
+          "size": 582,
+          "data": "PGh0bWw-PGJvZHk-DQo8cD5IaSBBbGV4LDwvcD4NCjxwPlRoYW5rIHlvdSBmb3IgYXBwbHlpbmcgZm9yIHRoZSBQcm9kdWN0IEVuZ2luZWVyIChSZWFjdCkgcm9sZS4gV2Ugd291bGQgbGlrZSB0byBpbnZpdGUgeW91IHRvIGEgNDUtbWludXRlIHZpZGVvIGludGVydmlldyB3aXRoIG91ciBlbmdpbmVlcmluZyBsZWFkLCBUb20mYWFjdXRlO3MgRmVycmVpcmEuPC9wPg0KPHA-UGxlYXNlIHJlcGx5IHdpdGggdGhlIHNsb3QgdGhhdCBzdWl0cyB5b3UgYmVzdDo8L3A-DQo8dGFibGUgYm9yZGVyPSIxIiBjZWxscGFkZGluZz0iNCI-DQo8dHI-PHRoPkRheTwvdGg-PHRoPlRpbWUgKENFVCk8L3RoPjwvdHI-DQo8dHI-PHRkPlR1ZXNkYXk8L3RkPjx0ZD4xMDowMCZuZGFzaDsxMDo0NTwvdGQ-PC90cj4NCjx0cj48dGQ-V2VkbmVzZGF5PC90ZD48dGQ-MTQ6MDAmbmRhc2g7MTQ6NDU8L3RkPjwvdHI-DQo8dHI-PHRkPlRodXJzZGF5PC90ZD48dGQ-MTY6MzAmbmRhc2g7MTc6MTU8L3RkPjwvdHI-DQo8L3RhYmxlPg0KPHA-V2FybSByZWdhcmRzLDxicj5MdW1lbiBIZWFsdGggUGVvcGxlIFRlYW08L3A-DQo8L2JvZHk-PC9odG1sPg0K"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "_note": "Interview invitation for the demo job Juniper Learning, Frontend Developer (applied), sent by an applicant tracking system (no-reply@us.greenhouse-mail.example) with Reply-To at the company. Juniper also has a saved Senior Product Designer job.",
+  "id": "19a6d2c4e8f1a00a",
+  "threadId": "19a6d2c4e8f1a00a",
+  "labelIds": [
+    "INBOX",
+    "UNREAD",
+    "CATEGORY_UPDATES"
+  ],
+  "snippet": "Hi Alex, Thank you for your interest in the Frontend Developer role at Juniper Learning. We would like to invite you to a 30-minute interview with Dana Okafor,",
+  "internalDate": "1794402600000",
+  "sizeEstimate": 2030,
+  "payload": {
+    "partId": "",
+    "mimeType": "multipart/alternative",
+    "filename": "",
+    "headers": [
+      {
+        "name": "Delivered-To",
+        "value": "demo@example.com"
+      },
+      {
+        "name": "MIME-Version",
+        "value": "1.0"
+      },
+      {
+        "name": "Date",
+        "value": "Wed, 11 Nov 2026 13:09:58 +0000"
+      },
+      {
+        "name": "Message-ID",
+        "value": "<19a6d2c4e8f1a00a.fixture@mail.example>"
+      },
+      {
+        "name": "Subject",
+        "value": "Juniper Learning: Interview invitation for Frontend Developer"
+      },
+      {
+        "name": "From",
+        "value": "Juniper Learning <no-reply@us.greenhouse-mail.example>"
+      },
+      {
+        "name": "Reply-To",
+        "value": "Dana Okafor <dana.okafor@juniperlearning.example>"
+      },
+      {
+        "name": "To",
+        "value": "demo@example.com"
+      },
+      {
+        "name": "Content-Type",
+        "value": "multipart/alternative; boundary=\"juniper-alt\""
+      }
+    ],
+    "body": {
+      "size": 0
+    },
+    "parts": [
+      {
+        "partId": "0",
+        "mimeType": "text/plain",
+        "filename": "",
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "text/plain; charset=\"utf-8\""
+          },
+          {
+            "name": "Content-Transfer-Encoding",
+            "value": "quoted-printable"
+          }
+        ],
+        "body": {
+          "size": 406,
+          "data": "SGkgQWxleCwNCg0KVGhhbmsgeW91IGZvciB5b3VyIGludGVyZXN0IGluIHRoZSBGcm9udGVuZCBEZXZlbG9wZXIgcm9sZSBhdCBKdW5pcGVyIExlYXJuaW5nLiBXZSB3b3VsZCBsaWtlIHRvIGludml0ZSB5b3UgdG8gYSAzMC1taW51dGUgaW50ZXJ2aWV3IHdpdGggRGFuYSBPa2Fmb3IsIG91ciBFbmdpbmVlcmluZyBNYW5hZ2VyLg0KDQpQbGVhc2UgcGljayBhIHRpbWUgdGhhdCBzdWl0cyB5b3UgaGVyZToNCmh0dHBzOi8vYXBwLmdyZWVuaG91c2UtbWFpbC5leGFtcGxlL3NjaGVkdWxpbmcvanVuaXBlcmxlYXJuaW5nLzc3MTAyMjMNCg0KSWYgbm9uZSBvZiB0aGUgdGltZXMgd29yaywganVzdCByZXBseSB0byB0aGlzIGVtYWlsLg0KDQpCZXN0IHJlZ2FyZHMsDQpKdW5pcGVyIExlYXJuaW5nIFJlY3J1aXRpbmcNCg"
+        }
+      },
+      {
+        "partId": "1",
+        "mimeType": "text/html",
+        "filename": "",
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "text/html; charset=\"utf-8\""
+          },
+          {
+            "name": "Content-Transfer-Encoding",
+            "value": "quoted-printable"
+          }
+        ],
+        "body": {
+          "size": 642,
+          "data": "PGh0bWw-PGJvZHkgc3R5bGU9ImZvbnQtZmFtaWx5OkhlbHZldGljYSxBcmlhbCxzYW5zLXNlcmlmIj4NCjxwPkhpIEFsZXgsPC9wPg0KPHA-VGhhbmsgeW91IGZvciB5b3VyIGludGVyZXN0IGluIHRoZSBGcm9udGVuZCBEZXZlbG9wZXIgcm9sZSBhdCBKdW5pcGVyIExlYXJuaW5nLiBXZSB3b3VsZCBsaWtlIHRvIGludml0ZSB5b3UgdG8gYSAzMC1taW51dGUgaW50ZXJ2aWV3IHdpdGggRGFuYSBPa2Fmb3IsIG91ciBFbmdpbmVlcmluZyBNYW5hZ2VyLjwvcD4NCjxwPjxhIGhyZWY9Imh0dHBzOi8vYXBwLmdyZWVuaG91c2UtbWFpbC5leGFtcGxlL3NjaGVkdWxpbmcvanVuaXBlcmxlYXJuaW5nLzc3MTAyMjMiIHN0eWxlPSJiYWNrZ3JvdW5kOiMxYTdmNWE7Y29sb3I6I2ZmZjtwYWRkaW5nOjEwcHggMTZweCI-UGljayBhIHRpbWU8L2E-PC9wPg0KPHA-SWYgbm9uZSBvZiB0aGUgdGltZXMgd29yaywganVzdCByZXBseSB0byB0aGlzIGVtYWlsLjwvcD4NCjxwPkJlc3QgcmVnYXJkcyw8YnI-SnVuaXBlciBMZWFybmluZyBSZWNydWl0aW5nPC9wPg0KPGltZyBzcmM9Imh0dHBzOi8vYXBwLmdyZWVuaG91c2UtbWFpbC5leGFtcGxlL28vcGl4ZWwuZ2lmIiB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBhbHQ9IiI-DQo8L2JvZHk-PC9odG1sPg0K"
+        }
+      }
+    ]
+  }
+}

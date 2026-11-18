@@ -1,0 +1,104 @@
+{
+  "_note": "Reply from the recruiter in the Northwind Labs thread (same threadId as the SENT fixture), with the earlier messages quoted below an \"On … wrote:\" line (and \"> \" lines). Only Mara's own text is the body.",
+  "id": "19a6d2c4e8f1a009",
+  "threadId": "19a4f1c2b3d40020",
+  "labelIds": [
+    "INBOX",
+    "UNREAD",
+    "IMPORTANT",
+    "CATEGORY_PERSONAL"
+  ],
+  "snippet": "Hi Alex, great, Thursday at 2 pm is confirmed. You&#39;ll get a calendar invite for the technical interview in a moment. Expect about 60 minutes of pairing on a",
+  "internalDate": "1794386820000",
+  "sizeEstimate": 3306,
+  "payload": {
+    "partId": "",
+    "mimeType": "multipart/alternative",
+    "filename": "",
+    "headers": [
+      {
+        "name": "Delivered-To",
+        "value": "demo@example.com"
+      },
+      {
+        "name": "MIME-Version",
+        "value": "1.0"
+      },
+      {
+        "name": "Date",
+        "value": "Wed, 11 Nov 2026 09:46:58 +0100"
+      },
+      {
+        "name": "Message-ID",
+        "value": "<19a6d2c4e8f1a009.fixture@mail.example>"
+      },
+      {
+        "name": "Subject",
+        "value": "Re: Next steps – Senior Frontend Engineer"
+      },
+      {
+        "name": "From",
+        "value": "Mara Lindqvist <mara.lindqvist@northwindlabs.example>"
+      },
+      {
+        "name": "To",
+        "value": "Alex Demo <demo@example.com>"
+      },
+      {
+        "name": "In-Reply-To",
+        "value": "<19a6d2c4e8f1a008.fixture@mail.example>"
+      },
+      {
+        "name": "References",
+        "value": "<northwind-invite.fixture@mail.example> <19a6d2c4e8f1a008.fixture@mail.example>"
+      },
+      {
+        "name": "Content-Type",
+        "value": "multipart/alternative; boundary=\"reply-alt\""
+      }
+    ],
+    "body": {
+      "size": 0
+    },
+    "parts": [
+      {
+        "partId": "0",
+        "mimeType": "text/plain",
+        "filename": "",
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "text/plain; charset=\"UTF-8\""
+          },
+          {
+            "name": "Content-Transfer-Encoding",
+            "value": "7bit"
+          }
+        ],
+        "body": {
+          "size": 757,
+          "data": "SGkgQWxleCwNCg0KZ3JlYXQsIFRodXJzZGF5IGF0IDIgcG0gaXMgY29uZmlybWVkLiBZb3UnbGwgZ2V0IGEgY2FsZW5kYXIgaW52aXRlIGZvciB0aGUgdGVjaG5pY2FsIGludGVydmlldyBpbiBhIG1vbWVudC4gRXhwZWN0IGFib3V0IDYwIG1pbnV0ZXMgb2YgcGFpcmluZyBvbiBhIHNtYWxsIFJlYWN0IHRhc2s7IG5vIHByZXBhcmF0aW9uIG5lZWRlZC4NCg0KQ2hlZXJzLA0KTWFyYQ0KDQpPbiBUdWUsIDEwIE5vdiAyMDI2IGF0IDE5OjAyLCBBbGV4IERlbW8gPGRlbW9AZXhhbXBsZS5jb20-IHdyb3RlOg0KDQo-IEhpIE1hcmEsDQo-DQo-IHRoYW5rcyBmb3IgdGhlIGludml0YXRpb24hIFRodXJzZGF5IGF0IDIgcG0gd29ya3Mgd2VsbCBmb3IgbWUuDQo-DQo-IEJlc3QsDQo-IEFsZXgNCj4NCj4gT24gV2VkLCA0IE5vdiAyMDI2IGF0IDA5OjEyLCBNYXJhIExpbmRxdmlzdCA8bWFyYS5saW5kcXZpc3RAbm9ydGh3aW5kbGFicy5leGFtcGxlPiB3cm90ZToNCj4NCj4-IEhpLA0KPj4NCj4-IFRoYW5rcyBhZ2FpbiBmb3IgeW91ciBhcHBsaWNhdGlvbi4gV2UgZW5qb3llZCByZWFkaW5nIGl0IGFuZCB3b3VsZCBsb3ZlIHRvIGludml0ZSB5b3UgdG8gYSBmaXJzdCBpbnRlcnZpZXcgd2l0aCBvdXIgZW5naW5lZXJpbmcgbGVhZC4NCj4-DQo-PiBDb3VsZCB5b3Ugc2hhcmUgeW91ciBhdmFpbGFiaWxpdHkgZm9yIG5leHQgd2Vlaz8gQSA0NS1taW51dGUgdmlkZW8gY2FsbCB3b3JrcyBiZXN0Lg0KPj4NCj4-IENoZWVycywNCj4-IE1hcmENCg"
+        }
+      },
+      {
+        "partId": "1",
+        "mimeType": "text/html",
+        "filename": "",
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "text/html; charset=\"UTF-8\""
+          },
+          {
+            "name": "Content-Transfer-Encoding",
+            "value": "quoted-printable"
+          }
+        ],
+        "body": {
+          "size": 1425,
+          "data": "PGRpdiBkaXI9Imx0ciI-PGRpdj5IaSBBbGV4LDwvZGl2PjxkaXY-PGJyPjwvZGl2PjxkaXY-Z3JlYXQsIFRodXJzZGF5IGF0IDIgcG0gaXMgY29uZmlybWVkLiBZb3UmIzM5O2xsIGdldCBhIGNhbGVuZGFyIGludml0ZSBmb3IgdGhlIHRlY2huaWNhbCBpbnRlcnZpZXcgaW4gYSBtb21lbnQuIEV4cGVjdCBhYm91dCA2MCBtaW51dGVzIG9mIHBhaXJpbmcgb24gYSBzbWFsbCBSZWFjdCB0YXNrOyBubyBwcmVwYXJhdGlvbiBuZWVkZWQuPC9kaXY-PGRpdj48YnI-PC9kaXY-PGRpdj5DaGVlcnMsPGJyPk1hcmE8L2Rpdj48ZGl2Pjxicj48L2Rpdj48L2Rpdj48YnI-PGRpdiBjbGFzcz0iZ21haWxfcXVvdGUiPjxkaXYgZGlyPSJsdHIiIGNsYXNzPSJnbWFpbF9hdHRyIj5PbiBUdWUsIDEwIE5vdiAyMDI2IGF0IDE5OjAyLCBBbGV4IERlbW8gJmx0OzxhIGhyZWY9Im1haWx0bzpkZW1vQGV4YW1wbGUuY29tIj5kZW1vQGV4YW1wbGUuY29tPC9hPiZndDsgd3JvdGU6PGJyPjwvZGl2PjxibG9ja3F1b3RlIGNsYXNzPSJnbWFpbF9xdW90ZSIgc3R5bGU9Im1hcmdpbjowcHggMHB4IDBweCAwLjhleDtib3JkZXItbGVmdDoxcHggc29saWQgcmdiKDIwNCwyMDQsMjA0KTtwYWRkaW5nLWxlZnQ6MWV4Ij48ZGl2IGRpcj0ibHRyIj5IaSBNYXJhLDxkaXY-PGJyPjwvZGl2PjxkaXY-dGhhbmtzIGZvciB0aGUgaW52aXRhdGlvbiEgVGh1cnNkYXkgYXQgMiBwbSB3b3JrcyB3ZWxsIGZvciBtZS48L2Rpdj48ZGl2Pjxicj48L2Rpdj48ZGl2PkJlc3QsPC9kaXY-PGRpdj5BbGV4PC9kaXY-PC9kaXY-PGJyPjxkaXYgY2xhc3M9ImdtYWlsX3F1b3RlIj48ZGl2IGRpcj0ibHRyIiBjbGFzcz0iZ21haWxfYXR0ciI-T24gV2VkLCA0IE5vdiAyMDI2IGF0IDA5OjEyLCBNYXJhIExpbmRxdmlzdCAmbHQ7PGEgaHJlZj0ibWFpbHRvOm1hcmEubGluZHF2aXN0QG5vcnRod2luZGxhYnMuZXhhbXBsZSI-bWFyYS5saW5kcXZpc3RAbm9ydGh3aW5kbGFicy5leGFtcGxlPC9hPiZndDsgd3JvdGU6PGJyPjwvZGl2PjxibG9ja3F1b3RlIGNsYXNzPSJnbWFpbF9xdW90ZSIgc3R5bGU9Im1hcmdpbjowcHggMHB4IDBweCAwLjhleDtib3JkZXItbGVmdDoxcHggc29saWQgcmdiKDIwNCwyMDQsMjA0KTtwYWRkaW5nLWxlZnQ6MWV4Ij5IaSw8YnI-PGJyPlRoYW5rcyBhZ2FpbiBmb3IgeW91ciBhcHBsaWNhdGlvbi4gV2UgZW5qb3llZCByZWFkaW5nIGl0IGFuZCB3b3VsZCBsb3ZlIHRvIGludml0ZSB5b3UgdG8gYSBmaXJzdCBpbnRlcnZpZXcgd2l0aCBvdXIgZW5naW5lZXJpbmcgbGVhZC48YnI-PGJyPkNvdWxkIHlvdSBzaGFyZSB5b3VyIGF2YWlsYWJpbGl0eSBmb3IgbmV4dCB3ZWVrPyBBIDQ1LW1pbnV0ZSB2aWRlbyBjYWxsIHdvcmtzIGJlc3QuPGJyPjxicj5DaGVlcnMsPGJyPk1hcmE8L2Jsb2NrcXVvdGU-PC9kaXY-PC9ibG9ja3F1b3RlPjwvZGl2Pg0K"
+        }
+      }
+    ]
+  }
+}

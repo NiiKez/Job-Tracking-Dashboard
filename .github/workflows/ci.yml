@@ -1,0 +1,200 @@
+# CI: runs on every pull request. deploy.yml calls this same file after a merge to main,
+# and then it also packages the build as release.tgz for the server.
+name: CI
+
+on:
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+# A new push to the same PR cancels its older, still running CI.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:18 # same major version as the server
+        env:
+          POSTGRES_DB: job_tracker_test
+          POSTGRES_HOST_AUTH_METHOD: trust # throwaway container, so no password in a public workflow
+          POSTGRES_INITDB_ARGS: --locale=C.UTF-8
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d job_tracker_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false # public repo: no later step needs git credentials
+          fetch-depth: 0 # the whole history, for the secret scan
+
+      # Secret scan with gitleaks (its own rules plus .gitleaks.toml) over every commit this
+      # build stands on: main's history plus the PR's commits. A secret that a later commit
+      # deletes is still in the history, so scanning the files alone is not enough. GitHub's own
+      # secret scanning only covers public repos. Only GitHub's own actions may run in this repo,
+      # so the step downloads the gitleaks binary and checks it against a pinned SHA-256. To update,
+      # take both values from the release's gitleaks_<version>_checksums.txt (linux_x64).
+      # --redact keeps a found secret out of the log; it shows the rule, file, line and commit.
+      - name: Secret scan
+        env:
+          GITLEAKS_VERSION: 8.30.1
+          GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          dir="$RUNNER_TEMP/gitleaks"
+          mkdir -p "$dir"
+          curl -fsSL --retry 3 -o "$dir/gitleaks.tar.gz" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "$GITLEAKS_SHA256  $dir/gitleaks.tar.gz" | sha256sum -c --quiet -
+          tar -xzf "$dir/gitleaks.tar.gz" -C "$dir" gitleaks
+          "$dir/gitleaks" git --redact --verbose --no-banner --log-opts=HEAD .
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24 # same major version as the server
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint --if-present
+      # Build before typecheck: `next build` generates the route types (LayoutProps, ...) tsc needs.
+      # The build gets no environment on purpose: this repo's logs and release artifact are public.
+      - run: npm run build --if-present
+      - run: npm run typecheck --if-present
+      - run: npm run test --if-present
+        env:
+          TEST_DATABASE_URL: postgresql://postgres@localhost:5432/job_tracker_test
+          MAIL_SOURCE: fixture
+
+      # Start this build the way the server does and smoke-test it (scripts/smoke.mjs). The
+      # server's health check only asks the database, so a page that answers 500 or a redirect
+      # loop would pass it. app-deploy also runs `npm run smoke` on each new release.
+      # The configuration is complete, so the start passes the production checks, and throwaway:
+      # the app's tables go into the public schema of the test database (each test file keeps to
+      # a schema of its own, and the container goes away with the job), the Google client is a
+      # dummy, and the token key exists for this run only. The scheduler is off; MAIL_SOURCE is
+      # left unset (Gmail, which nothing here connects).
+      - name: Smoke test
+        env:
+          NODE_ENV: production
+          PORT: "3800"
+          DATABASE_URL: postgresql://postgres@localhost:5432/job_tracker_test
+          APP_URL: http://127.0.0.1:3800
+          GOOGLE_CLIENT_ID: ci-smoke-client-id
+          GOOGLE_CLIENT_SECRET: ci-smoke-not-a-secret
+          ALLOWED_EMAILS: someone@example.com
+          INBOX_SCHEDULER: "off"
+        run: |
+          npm run migrate
+          INBOX_TOKEN_KEY="$(openssl rand -hex 32)"
+          echo "::add-mask::$INBOX_TOKEN_KEY"
+          export INBOX_TOKEN_KEY
+          # "Package release" archives the checkout, so it must hold the build alone afterwards.
+          # The log goes outside it; the app never logs a value from its environment, so the log
+          # can be printed below. `next start` writes the pages it renders to
+          # .next/server/route-cache, which the build leaves absent: that is removed again.
+          if [ -e .next/server/route-cache ]; then
+            echo "::error::.next/server/route-cache exists after the build; the cleanup below would remove part of it"
+            exit 1
+          fi
+          log="$RUNNER_TEMP/smoke-server.log"
+          # A process group of its own, so stopping it stops next-server under npm too.
+          setsid npm start > "$log" 2>&1 &
+          pid=$!
+          stop() {
+            status=$?
+            kill -TERM -- "-$pid" 2>/dev/null || true
+            wait "$pid" 2>/dev/null || true
+            rm -rf .next/server/route-cache
+            if [ "$status" -ne 0 ]; then
+              echo "::group::Server log"
+              cat "$log"
+              echo "::endgroup::"
+            fi
+          }
+          trap stop EXIT
+          # Until /api/health answers at all; the smoke test checks that the answer is 200.
+          for _ in $(seq 60); do
+            curl -s -o /dev/null --max-time 2 "$APP_URL/api/health" && break
+            kill -0 "$pid" 2>/dev/null || { echo "::error::The server stopped while starting"; exit 1; }
+            sleep 1
+          done
+          npm run smoke -- "$APP_URL"
+
+      # Only when deploy.yml called this: ship exactly this build, without dev dependencies.
+      # (The e2e job below builds on its own, so nothing it leaves behind reaches the release.)
+      - name: Package release
+        if: github.event_name != 'pull_request'
+        run: |
+          npm prune --omit=dev
+          tar --exclude=./.git --exclude=./.next/cache -czf "$RUNNER_TEMP/release.tgz" .
+          ls -lh "$RUNNER_TEMP/release.tgz"
+
+      - uses: actions/upload-artifact@v7
+        if: github.event_name != 'pull_request'
+        with:
+          name: release
+          path: ${{ runner.temp }}/release.tgz
+          if-no-files-found: error
+          retention-days: 1 # only needed until the deploy job, minutes later
+
+  # End-to-end tests (tests/e2e, Playwright): a real browser against this commit's production
+  # build, with demo mail instead of Gmail. A job of its own, so it runs beside `checks`. deploy.yml
+  # calls this whole file, so a failing e2e run stops the deploy as well.
+  # The server (tests/e2e/support/serve.mjs) gets an invented configuration and its own schema in
+  # the throwaway test database; nothing here needs a secret.
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18 # same major version as the server
+        env:
+          POSTGRES_DB: job_tracker_test
+          POSTGRES_HOST_AUTH_METHOD: trust # throwaway container, so no password in a public workflow
+          POSTGRES_INITDB_ARGS: --locale=C.UTF-8
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d job_tracker_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24 # same major version as the server
+          cache: npm
+
+      - run: npm ci
+      # Chromium, the version this @playwright/test expects, and its system libraries: the
+      # headless shell for the app's specs, and full Chromium for the `extension` project, which
+      # loads the Chrome extension (the shell can't load extensions). `install chromium` brings
+      # both. No other browser: the suite runs in Chromium only.
+      - run: npx playwright install --with-deps chromium
+      # No environment, as in `checks`. Builds the extension's zip too; the `extension` project
+      # makes its own e2e build of extension/ during the run.
+      - run: npm run build
+      - run: npm run test:e2e
+        env:
+          TEST_DATABASE_URL: postgresql://postgres@localhost:5432/job_tracker_test
+
+      # The HTML report with a trace of each retried test, to see what the browser saw. All of its
+      # data is invented (example.com accounts, demo mail).
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7

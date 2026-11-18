@@ -1,0 +1,60 @@
+{
+  "_note": "Was the mock's INCOMING[2]: application confirmation from a company with no demo job. Subject as an RFC 2047 encoded word; base64 transfer encoding already decoded by Gmail.",
+  "id": "19a6d2c4e8f1a003",
+  "threadId": "19a6d2c4e8f1a003",
+  "labelIds": [
+    "INBOX",
+    "UNREAD",
+    "CATEGORY_UPDATES"
+  ],
+  "snippet": "Hi, Thank you for applying for the Frontend Engineer role at Driftwood Audio. We received your application and will review it shortly. Driftwood Audio",
+  "internalDate": "1794309900000",
+  "sizeEstimate": 698,
+  "payload": {
+    "partId": "",
+    "mimeType": "text/plain",
+    "filename": "",
+    "headers": [
+      {
+        "name": "Delivered-To",
+        "value": "demo@example.com"
+      },
+      {
+        "name": "MIME-Version",
+        "value": "1.0"
+      },
+      {
+        "name": "Date",
+        "value": "Tue, 10 Nov 2026 12:24:58 +0100"
+      },
+      {
+        "name": "Message-ID",
+        "value": "<19a6d2c4e8f1a003.fixture@mail.example>"
+      },
+      {
+        "name": "Subject",
+        "value": "=?UTF-8?Q?Thank_you_for_applying_=E2=80=93_Frontend_Engineer?="
+      },
+      {
+        "name": "From",
+        "value": "\"Driftwood Audio Careers\" <careers@driftwoodaudio.example>"
+      },
+      {
+        "name": "To",
+        "value": "Alex Demo <demo@example.com>"
+      },
+      {
+        "name": "Content-Type",
+        "value": "text/plain; charset=\"UTF-8\""
+      },
+      {
+        "name": "Content-Transfer-Encoding",
+        "value": "base64"
+      }
+    ],
+    "body": {
+      "size": 158,
+      "data": "SGksDQoNClRoYW5rIHlvdSBmb3IgYXBwbHlpbmcgZm9yIHRoZSBGcm9udGVuZCBFbmdpbmVlciByb2xlIGF0IERyaWZ0d29vZCBBdWRpby4gV2UgcmVjZWl2ZWQgeW91ciBhcHBsaWNhdGlvbiBhbmQgd2lsbCByZXZpZXcgaXQgc2hvcnRseS4NCg0KRHJpZnR3b29kIEF1ZGlvDQo"
+    }
+  }
+}

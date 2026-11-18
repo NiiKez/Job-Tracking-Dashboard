@@ -1,0 +1,64 @@
+{
+  "_note": "German appointment confirmation for the demo job Fernweh Mobility (interview). Body in ISO-8859-1 (quoted-printable already decoded by Gmail), subject an ISO-8859-1 encoded word, Content-Language de.",
+  "id": "19a6d2c4e8f1a007",
+  "threadId": "19a6d2c4e8f1a007",
+  "labelIds": [
+    "INBOX",
+    "UNREAD",
+    "CATEGORY_PERSONAL"
+  ],
+  "snippet": "Hallo Alex, hiermit bestätige ich Ihren Termin für das Vorstellungsgespräch am Dienstag um 10:00 Uhr in unserem Büro in München (Landsberger Straße 12, 3. OG).",
+  "internalDate": "1794234600000",
+  "sizeEstimate": 966,
+  "payload": {
+    "partId": "",
+    "mimeType": "text/plain",
+    "filename": "",
+    "headers": [
+      {
+        "name": "Delivered-To",
+        "value": "demo@example.com"
+      },
+      {
+        "name": "MIME-Version",
+        "value": "1.0"
+      },
+      {
+        "name": "Date",
+        "value": "Mon, 9 Nov 2026 15:29:58 +0100"
+      },
+      {
+        "name": "Message-ID",
+        "value": "<19a6d2c4e8f1a007.fixture@mail.example>"
+      },
+      {
+        "name": "Subject",
+        "value": "=?ISO-8859-1?Q?Terminbest=E4tigung=3A_Ihr_Vorstellungsgespr=E4ch_am_Diens?= =?ISO-8859-1?Q?tag?="
+      },
+      {
+        "name": "From",
+        "value": "Jonas Huber <jonas.huber@fernweh-mobility.example>"
+      },
+      {
+        "name": "To",
+        "value": "Alex Demo <demo@example.com>"
+      },
+      {
+        "name": "Content-Language",
+        "value": "de"
+      },
+      {
+        "name": "Content-Type",
+        "value": "text/plain; charset=\"ISO-8859-1\""
+      },
+      {
+        "name": "Content-Transfer-Encoding",
+        "value": "quoted-printable"
+      }
+    ],
+    "body": {
+      "size": 349,
+      "data": "SGFsbG8gQWxleCwNCg0KaGllcm1pdCBiZXN05HRpZ2UgaWNoIElocmVuIFRlcm1pbiBm_HIgZGFzIFZvcnN0ZWxsdW5nc2dlc3By5GNoIGFtIERpZW5zdGFnIHVtIDEwOjAwIFVociBpbiB1bnNlcmVtIEL8cm8gaW4gTfxuY2hlbiAoTGFuZHNiZXJnZXIgU3RyYd9lIDEyLCAzLiBPRykuDQoNClNpZSBzcHJlY2hlbiBtaXQgbWlyIHVuZCB1bnNlcmVyIFRlYW1sZWl0ZXJpbiBCdWNodW5nLCBTYWJpbmUgR3L232wuIEJpdHRlIGJyaW5nZW4gU2llIGVpbmVuIExpY2h0YmlsZGF1c3dlaXMgZvxyIGRlbiBFbXBmYW5nIG1pdC4NCg0KVmllbGUgR3L832UNCkpvbmFzIEh1YmVyDQpGZXJud2VoIE1vYmlsaXR5IEdtYkgNCg"
+    }
+  }
+}

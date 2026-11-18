@@ -1,0 +1,95 @@
+{
+  "_note": "An applicant-tracking system (teamtailor-mail.example) asks to schedule a call for Quillmark, a company with no demo job, without naming a role: job mail (an ATS sender) about no known job, so it goes to review (unknown_job) suggesting interview. multipart/alternative.",
+  "id": "19a6d2c4e8f1a00f",
+  "threadId": "19a6d2c4e8f1a00f",
+  "labelIds": [
+    "INBOX",
+    "UNREAD",
+    "CATEGORY_UPDATES"
+  ],
+  "snippet": "Hi Alex, thanks again for your time on the phone last week. We&#39;d like to schedule a call with our team lead to continue the conversation. Please choose a slot",
+  "internalDate": "1794387900000",
+  "sizeEstimate": 1582,
+  "payload": {
+    "partId": "",
+    "mimeType": "multipart/alternative",
+    "filename": "",
+    "headers": [
+      {
+        "name": "Delivered-To",
+        "value": "demo@example.com"
+      },
+      {
+        "name": "MIME-Version",
+        "value": "1.0"
+      },
+      {
+        "name": "Date",
+        "value": "Wed, 11 Nov 2026 10:04:58 +0100"
+      },
+      {
+        "name": "Message-ID",
+        "value": "<19a6d2c4e8f1a00f.fixture@mail.example>"
+      },
+      {
+        "name": "Subject",
+        "value": "Next steps with Quillmark"
+      },
+      {
+        "name": "From",
+        "value": "Quillmark Talent <no-reply@quillmark.teamtailor-mail.example>"
+      },
+      {
+        "name": "To",
+        "value": "demo@example.com"
+      },
+      {
+        "name": "Content-Type",
+        "value": "multipart/alternative; boundary=\"quillmark-alt\""
+      }
+    ],
+    "body": {
+      "size": 0
+    },
+    "parts": [
+      {
+        "partId": "0",
+        "mimeType": "text/plain",
+        "filename": "",
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "text/plain; charset=\"utf-8\""
+          },
+          {
+            "name": "Content-Transfer-Encoding",
+            "value": "quoted-printable"
+          }
+        ],
+        "body": {
+          "size": 286,
+          "data": "SGkgQWxleCwNCg0KdGhhbmtzIGFnYWluIGZvciB5b3VyIHRpbWUgb24gdGhlIHBob25lIGxhc3Qgd2Vlay4gV2UnZCBsaWtlIHRvIHNjaGVkdWxlIGEgY2FsbCB3aXRoIG91ciB0ZWFtIGxlYWQgdG8gY29udGludWUgdGhlIGNvbnZlcnNhdGlvbi4NCg0KUGxlYXNlIGNob29zZSBhIHNsb3QgdGhhdCBzdWl0cyB5b3UgaGVyZToNCmh0dHBzOi8vcXVpbGxtYXJrLnRlYW10YWlsb3ItbWFpbC5leGFtcGxlL3NjaGVkdWxpbmcvNDQ3MQ0KDQpLaW5kIHJlZ2FyZHMsDQpRdWlsbG1hcmsgVGFsZW50IFRlYW0NCg"
+        }
+      },
+      {
+        "partId": "1",
+        "mimeType": "text/html",
+        "filename": "",
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "text/html; charset=\"utf-8\""
+          },
+          {
+            "name": "Content-Transfer-Encoding",
+            "value": "quoted-printable"
+          }
+        ],
+        "body": {
+          "size": 422,
+          "data": "PGh0bWw-PGJvZHkgc3R5bGU9ImZvbnQtZmFtaWx5OkFyaWFsLHNhbnMtc2VyaWYiPg0KPHA-SGkgQWxleCw8L3A-DQo8cD50aGFua3MgYWdhaW4gZm9yIHlvdXIgdGltZSBvbiB0aGUgcGhvbmUgbGFzdCB3ZWVrLiBXZSYjMzk7ZCBsaWtlIHRvIHNjaGVkdWxlIGEgY2FsbCB3aXRoIG91ciB0ZWFtIGxlYWQgdG8gY29udGludWUgdGhlIGNvbnZlcnNhdGlvbi48L3A-DQo8cD48YSBocmVmPSJodHRwczovL3F1aWxsbWFyay50ZWFtdGFpbG9yLW1haWwuZXhhbXBsZS9zY2hlZHVsaW5nLzQ0NzEiIHN0eWxlPSJiYWNrZ3JvdW5kOiMzYjJhOGY7Y29sb3I6I2ZmZjtwYWRkaW5nOjEwcHggMTZweCI-Q2hvb3NlIGEgc2xvdDwvYT48L3A-DQo8cD5LaW5kIHJlZ2FyZHMsPGJyPlF1aWxsbWFyayBUYWxlbnQgVGVhbTwvcD4NCjwvYm9keT48L2h0bWw-DQo"
+        }
+      }
+    ]
+  }
+}

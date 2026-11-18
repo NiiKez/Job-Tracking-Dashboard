@@ -1,0 +1,111 @@
+{
+  "_note": "Was the mock's INCOMING[3]: a job-board alert (bulk mail: List-Unsubscribe, List-Id, Precedence). multipart/alternative; the text/plain part is the body.",
+  "id": "19a6d2c4e8f1a004",
+  "threadId": "19a6d2c4e8f1a004",
+  "labelIds": [
+    "INBOX",
+    "UNREAD",
+    "CATEGORY_PROMOTIONS"
+  ],
+  "snippet": "New this week for &#39;frontend Berlin&#39;: 12 jobs. Unsubscribe anytime.",
+  "internalDate": "1794376800000",
+  "sizeEstimate": 1705,
+  "payload": {
+    "partId": "",
+    "mimeType": "multipart/alternative",
+    "filename": "",
+    "headers": [
+      {
+        "name": "Delivered-To",
+        "value": "demo@example.com"
+      },
+      {
+        "name": "MIME-Version",
+        "value": "1.0"
+      },
+      {
+        "name": "Date",
+        "value": "Wed, 11 Nov 2026 05:59:58 +0000"
+      },
+      {
+        "name": "Message-ID",
+        "value": "<19a6d2c4e8f1a004.fixture@mail.example>"
+      },
+      {
+        "name": "Subject",
+        "value": "12 new jobs match your search"
+      },
+      {
+        "name": "From",
+        "value": "JobRadar <alerts@jobradar-mail.example>"
+      },
+      {
+        "name": "To",
+        "value": "demo@example.com"
+      },
+      {
+        "name": "List-Unsubscribe",
+        "value": "<mailto:unsubscribe@jobradar-mail.example?subject=unsubscribe>, <https://jobradar-mail.example/unsubscribe/7f3c9a>"
+      },
+      {
+        "name": "List-Unsubscribe-Post",
+        "value": "List-Unsubscribe=One-Click"
+      },
+      {
+        "name": "List-Id",
+        "value": "JobRadar job alerts <alerts.jobradar-mail.example>"
+      },
+      {
+        "name": "Precedence",
+        "value": "bulk"
+      },
+      {
+        "name": "Content-Type",
+        "value": "multipart/alternative; boundary=\"radar-alt\""
+      }
+    ],
+    "body": {
+      "size": 0
+    },
+    "parts": [
+      {
+        "partId": "0",
+        "mimeType": "text/plain",
+        "filename": "",
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "text/plain; charset=\"UTF-8\""
+          },
+          {
+            "name": "Content-Transfer-Encoding",
+            "value": "7bit"
+          }
+        ],
+        "body": {
+          "size": 68,
+          "data": "TmV3IHRoaXMgd2VlayBmb3IgJ2Zyb250ZW5kIEJlcmxpbic6IDEyIGpvYnMuIFVuc3Vic2NyaWJlIGFueXRpbWUuDQo"
+        }
+      },
+      {
+        "partId": "1",
+        "mimeType": "text/html",
+        "filename": "",
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "text/html; charset=\"UTF-8\""
+          },
+          {
+            "name": "Content-Transfer-Encoding",
+            "value": "quoted-printable"
+          }
+        ],
+        "body": {
+          "size": 526,
+          "data": "PCFET0NUWVBFIGh0bWw-PGh0bWw-PGhlYWQ-PG1ldGEgY2hhcnNldD0idXRmLTgiPjwvaGVhZD48Ym9keT4NCjxwPk5ldyB0aGlzIHdlZWsgZm9yICdmcm9udGVuZCBCZXJsaW4nOiA8Yj4xMiBqb2JzPC9iPi48L3A-DQo8dGFibGUgcm9sZT0icHJlc2VudGF0aW9uIj4NCjx0cj48dGQ-PGEgaHJlZj0iaHR0cHM6Ly9qb2JyYWRhci1tYWlsLmV4YW1wbGUvai8xIj5Gcm9udGVuZCBEZXZlbG9wZXI8L2E-PC90ZD48dGQ-QnJhbWJsZSAmYW1wOyBDbzwvdGQ-PHRkPkJlcmxpbjwvdGQ-PC90cj4NCjx0cj48dGQ-PGEgaHJlZj0iaHR0cHM6Ly9qb2JyYWRhci1tYWlsLmV4YW1wbGUvai8yIj5TZW5pb3IgRnJvbnRlbmQgRW5naW5lZXI8L2E-PC90ZD48dGQ-UG9sYXJpcyBNYXBzPC90ZD48dGQ-QmVybGluPC90ZD48L3RyPg0KPC90YWJsZT4NCjxwPjxhIGhyZWY9Imh0dHBzOi8vam9icmFkYXItbWFpbC5leGFtcGxlL3Vuc3Vic2NyaWJlLzdmM2M5YSI-VW5zdWJzY3JpYmUgYW55dGltZS48L2E-PC9wPg0KPC9ib2R5PjwvaHRtbD4NCg"
+        }
+      }
+    ]
+  }
+}

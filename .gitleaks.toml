@@ -1,0 +1,81 @@
+# Secret scan rules for gitleaks: the "Secret scan" step in .github/workflows/ci.yml reads this file.
+# gitleaks' own rules, plus this app's secrets in the shapes those rules miss. Without these, a
+# Google client secret or a Gmail token is only found on a line like `secret = ...`, and a
+# password inside a PostgreSQL URL is not found at all.
+#
+# This file is public: it holds patterns, never a real value. Invented values in tests and docs
+# say so in the value itself ("not-a-real-secret", "invented", "fake", ...) or stay too short to
+# look real, so the allowlists below can skip them.
+#
+# To scan before you push:  gitleaks git --redact --log-opts="HEAD" .
+# --redact keeps the secret out of the output. Use it every time, because CI logs are public
+# once the repo is.
+
+title = "job-tracker"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "google-oauth-client-secret"
+description = "Google OAuth client secret (GOOGLE_CLIENT_SECRET)"
+regex = '''\b(GOCSPX-[A-Za-z0-9_-]{28})(?:[^A-Za-z0-9_-]|$)'''
+secretGroup = 1
+keywords = ["gocspx-"]
+
+[[rules]]
+id = "google-oauth-refresh-token"
+description = "Google OAuth refresh token (the Gmail grant)"
+regex = '''\b(1//0[A-Za-z0-9_-]{50,})'''
+secretGroup = 1
+entropy = 4.5
+keywords = ["1//0"]
+
+[[rules]]
+id = "google-oauth-access-token"
+description = "Google OAuth access token"
+regex = '''\b(ya29\.[A-Za-z0-9_-]{50,})'''
+secretGroup = 1
+entropy = 4.5
+keywords = ["ya29."]
+
+[[rules]]
+id = "job-tracker-extension-key"
+description = "A Chrome extension key of this app (jtx_ and 32 random bytes in base64url): src/lib/server/auth/extension-key.ts"
+regex = '''\b(jtx_[A-Za-z0-9_-]{43})(?:[^A-Za-z0-9_-]|$)'''
+secretGroup = 1
+# A real key is random; a placeholder such as jtx_xxxx… is not.
+entropy = 3.5
+keywords = ["jtx_"]
+
+[[rules]]
+id = "postgres-url-password"
+description = "Password inside a PostgreSQL connection URL (DATABASE_URL, TEST_DATABASE_URL)"
+regex = '''postgres(?:ql)?://[^:@/\s'"`]+:([^@/\s'"`]+)@'''
+secretGroup = 1
+keywords = ["postgres://", "postgresql://"]
+
+[[rules.allowlists]]
+description = "Placeholders and values that say they are invented"
+regexTarget = "secret"
+regexes = [
+  '''^\$\{[^}]*\}''',                         # ${PASSWORD} in a template string, also ${PASSWORD}%zz
+  '''^\$[A-Za-z_][A-Za-z0-9_]*$''',           # $PGPASSWORD
+  '''^<[^>]*>$''',                            # <password> in docs
+  '''(?i)^(?:pass|passwd|secret|x+|\*+|\.\.\.)$''',
+  '''(?i)^p(?:a|@|%40)ss(?:/|%2f)?word$''',   # password, also URL-encoded (p%40ss%2Fword)
+  '''^pw-[0-9]+''',                           # pw-1234 in tests/unit/env.test.ts
+]
+stopwords = ["not-a-secret", "not-real", "invented", "fake", "example", "placeholder", "dummy", "changeme"]
+
+[[rules]]
+id = "gmail-address"
+description = "A Gmail address. The owner's account must not appear in the public repo; tests use invented ones."
+regex = '''(?i)\b([a-z0-9._%+-]+@(?:gmail|googlemail)\.com)\b'''
+secretGroup = 1
+keywords = ["@gmail.com", "@googlemail.com"]
+
+[[rules.allowlists]]
+description = "Invented senders in the mail-rule tests. Add new invented ones here."
+regexTarget = "secret"
+regexes = ['''(?i)^(?:someone|driftwood-audio|norvik\.hr)@gmail\.com$''']

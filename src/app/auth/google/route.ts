@@ -1,16 +1,18 @@
 import { connection, type NextRequest } from "next/server";
 import { loginPath, SIGN_IN_STATE_COOKIE, signInAuthorizationUrl } from "@/lib/server/auth/google";
 import { startOAuthState } from "@/lib/server/auth/oauth-state";
-import { signInConfig } from "@/lib/server/env";
+import { getEnv, signInConfig } from "@/lib/server/env";
 import { redirectTo } from "@/lib/server/auth/guard";
 
 /**
  * Starts Google sign-in: stores state, PKCE verifier and the sanitized ?next= in a short-lived
  * cookie (10 minutes) and sends the browser to Google's account chooser. While sign-in is locked it
- * goes back to /login?error=not_configured instead.
+ * goes back to /login?error=not_configured instead. The public demo (DEMO_MODE=on) has no Google
+ * sign-in: 303 to /login (which the proxy sends on to the demo's entry page), with no cookie.
  */
 export async function GET(req: NextRequest) {
   await connection();
+  if (getEnv().demoMode) return redirectTo(loginPath());
   const next = req.nextUrl.searchParams.get("next");
   if (!signInConfig()) return redirectTo(loginPath("not_configured", next));
 

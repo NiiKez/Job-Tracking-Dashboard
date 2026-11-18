@@ -8,7 +8,7 @@ import {
   touchExtensionKey,
 } from "@/lib/server/repo/extension-keys";
 import type { User } from "@/lib/server/repo/users";
-import { isAllowed } from "./allowlist";
+import { mayUse } from "./access";
 
 /**
  * The Chrome extension's keys (docs/plan/4-chrome-extension.md, "Key routes"). The extension
@@ -18,7 +18,8 @@ import { isAllowed } from "./allowlist";
  * Key: "jtx_" and 32 random bytes in unpadded base64url (47 characters). The prefix makes a
  * leaked key easy to recognise (.gitleaks.toml has a rule for it). Only the SHA-256 of the 32
  * bytes is stored, as for sessions. A key does not expire: it ends when it is revoked in
- * Settings, by Disconnect in the popup, or when its user leaves ALLOWED_EMAILS.
+ * Settings, by Disconnect in the popup, or when its user leaves ALLOWED_EMAILS. Google sign-in
+ * only: in locked mode and in the public demo no key is accepted.
  *
  * last_used_at (Settings shows it) is moved when it is older than 5 minutes, so a busy popup
  * writes at most one row every 5 minutes.
@@ -33,8 +34,9 @@ import { isAllowed } from "./allowlist";
  *   readBearerToken(req)               the credentials of `Authorization: Bearer <credentials>`,
  *                                      or null (not checked against anything)
  *   authenticateExtensionKey(db, req)  the key's user and the key's id, or { ok: false } for
- *                                      locked mode and a missing, malformed, unknown or revoked
- *                                      key. A user no longer on ALLOWED_EMAILS: the key is
+ *                                      locked and demo mode and a missing, malformed, unknown or
+ *                                      revoked key. A user who may not use the app (mayUse():
+ *                                      no longer on ALLOWED_EMAILS, or a demo user): the key is
  *                                      deleted, { ok: false }. Touches last_used_at when due.
  */
 
@@ -92,8 +94,9 @@ export async function authenticateExtensionKey(db: Db, req: Request): Promise<Ex
   if (!tokenHash) return { ok: false };
   const found = await findExtensionKeyByTokenHash(db, tokenHash, EXTENSION_KEY_TOUCH_AFTER_SECONDS);
   if (!found) return { ok: false };
-  if (!isAllowed(found.user.email)) {
-    // Removed from ALLOWED_EMAILS since connecting: this key ends now, as a session would.
+  if (!mayUse(found.user)) {
+    // Removed from ALLOWED_EMAILS since connecting, or a demo user: this key ends now, as a
+    // session would.
     await deleteExtensionKeyRow(db, found.user.id, found.key.id);
     return { ok: false };
   }

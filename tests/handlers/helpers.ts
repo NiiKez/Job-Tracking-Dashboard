@@ -2,7 +2,8 @@
 import { NextRequest } from "next/server";
 import { createSession } from "@/lib/server/auth/session";
 import { getDb, withTx } from "@/lib/server/db/client";
-import { upsertUserOnSignIn, type SignInProfile, type User } from "@/lib/server/repo/users";
+import { WORKSPACE_LIFETIME_SECONDS } from "@/lib/server/demo/marker";
+import { upsertUserOnSignIn, userFromRow, type SignInProfile, type User, type UserRow } from "@/lib/server/repo/users";
 import { APP_ORIGIN, OWNER_EMAIL } from "../unit/auth/env";
 
 export const OWNER: SignInProfile = {
@@ -41,6 +42,23 @@ export const ctx = <P extends Record<string, string>>(params: P = {} as P) => ({
 export async function signedIn(profile: SignInProfile = OWNER): Promise<{ user: User; token: string; cookie: string }> {
   const { user } = await withTx((tx) => upsertUserOnSignIn(tx, profile));
   const { token } = await createSession(getDb(), user.id);
+  return { user, token, cookie: `__Host-jt_session=${token}` };
+}
+
+/**
+ * A public demo's user, made directly in SQL: google_sub "demo:" + a UUID and an address under
+ * demo.invalid, as the demo marks its workspaces (src/lib/server/demo/marker.ts), with a session
+ * of fixed lifetime (default: the workspace's). No seed, settings or rules. `cookie` is for https.
+ */
+export async function demoSignedIn(
+  lifetimeSeconds = WORKSPACE_LIFETIME_SECONDS,
+): Promise<{ user: User; token: string; cookie: string }> {
+  const [row] = await getDb()<UserRow[]>`
+    INSERT INTO users (google_sub, email, name)
+    VALUES ('demo:' || gen_random_uuid(), 'alex.' || substr(md5(random()::text), 1, 8) || '@demo.invalid', 'Alex Demo')
+    RETURNING id, email, google_sub, name, picture_url`;
+  const user = userFromRow(row);
+  const { token } = await createSession(getDb(), user.id, { fixedLifetimeSeconds: lifetimeSeconds });
   return { user, token, cookie: `__Host-jt_session=${token}` };
 }
 

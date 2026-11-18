@@ -3,11 +3,11 @@ import { connection, type NextRequest } from "next/server";
 import { z } from "zod";
 import { isSitePath } from "@/lib/domain/safe-next";
 import { getDb } from "@/lib/server/db/client";
-import { appOrigin, appUrl, signInConfig } from "@/lib/server/env";
+import { appOrigin, appUrl, signInConfig, signInMode } from "@/lib/server/env";
 import { BadRequestError, isErrorNamed, PayloadTooLargeError, UnauthorizedError } from "@/lib/server/errors";
 import { deleteSession } from "@/lib/server/repo/sessions";
 import type { User } from "@/lib/server/repo/users";
-import { isAllowed } from "./allowlist";
+import { mayUse } from "./access";
 import { authenticateExtensionKey } from "./extension-key";
 import { clearedSessionCookie, extendSession, lookupSession } from "./session";
 
@@ -20,15 +20,27 @@ import { clearedSessionCookie, extendSession, lookupSession } from "./session";
  *   export const PATCH = route<{ id: string }>(async ({ req, user, params }) => …);  // dynamic segments
  *   export const GET = route(async ({ user, extensionKeyId }) => …, { auth: "extension" });  // key routes
  *
+ * Sign-in modes (signInMode() in env.ts; docs/plan/5-public-demo.md, "Three sign-in modes"):
+ *   google  the real app: Google sign-in for the addresses on ALLOWED_EMAILS. A session passes
+ *           while its user is on the allowlist and is not a demo user.
+ *   demo    the public demo (DEMO_MODE=on): no Google values at all; visitors get a workspace
+ *           (a demo user and a session of fixed lifetime, never extended: session.ts) from
+ *           POST /auth/demo. A session passes only when its user is a demo user. The key routes
+ *           stay shut (below).
+ *   locked  neither: every request is signed out and no session is looked up.
+ * Who passes is mayUse() in access.ts, asked on every request after the session lookup.
+ *
  * route():
  * 1. awaits connection(), so nothing is prerendered at build time and no environment is read then;
- * 2. answers 401 to everything while sign-in is locked (signInConfig() is null);
+ * 2. answers 401 to everything while sign-in is locked (signInMode() is "locked");
  * 3. for any method but GET and HEAD: 403 unless Origin equals APP_URL's origin (a missing Origin
  *    is refused) and Content-Type is application/json (parameters allowed). A cross-site form
- *    cannot send JSON, and SameSite=Lax keeps the cookie off other sites' subrequests;
+ *    cannot send JSON, and SameSite=Lax keeps the cookie off other sites' subrequests. APP_URL is
+ *    set in google mode and required in demo mode (checkEnv);
  * 4. reads the session cookie before any query: none → 401; malformed, unknown or expired → 401
- *    and clears it; the user's email no longer on ALLOWED_EMAILS → 401, deletes that session and
- *    clears the cookie;
+ *    and clears it; a user who may not use the app (mayUse(): google mode, the email no longer on
+ *    ALLOWED_EMAILS, or a demo user; demo mode, anyone but a demo user) → 401, deletes that
+ *    session and clears the cookie;
  * 5. runs the handler: a Response passes through, anything else is sent as JSON with
  *    `opts.status` (default 200). The sliding-expiry cookie is added when the session was extended
  *    (also to error responses, except a 401);
@@ -41,11 +53,14 @@ import { clearedSessionCookie, extendSession, lookupSession } from "./session";
  * Key routes: route(handler, { auth: "extension" }) is the Chrome extension's variant
  * (docs/plan/4-chrome-extension.md, "Key routes"). Its requests come from chrome-extension://
  * with a key of their own (src/lib/server/auth/extension-key.ts), never with the cookie:
- * 1. awaits connection() and answers 401 while sign-in is locked, as above;
+ * 1. awaits connection() and answers 401 unless Google sign-in is set up (signInConfig() is not
+ *    null): in locked mode, and in the demo too, which has no extension (a key does not expire,
+ *    a workspace does). The demo's cookie routes for the extension refuse with 403 (access.ts);
  * 2. for any method but GET and HEAD: 403 unless Content-Type is application/json. No Origin
  *    check: a browser never attaches the key by itself, so another site cannot send it;
  * 3. `Authorization: Bearer <key>`: missing, malformed, unknown or revoked → 401; the key's user
- *    no longer on ALLOWED_EMAILS → 401 and the key is deleted. last_used_at moves when due;
+ *    may not use the app (mayUse(): no longer on ALLOWED_EMAILS, or a demo user) → 401 and the
+ *    key is deleted. last_used_at moves when due;
  * 4. runs the handler with `user` and `extensionKeyId`, and maps errors as in 6. above.
  * Its 401s carry WWW-Authenticate: Bearer. The session cookie is never read, set or cleared.
  * The other way round, cookie routes never look at an Authorization header (extensionKeyId is
@@ -118,7 +133,7 @@ export function route<P extends RouteParams = Record<string, never>>(
     if (opts.auth === "extension") return runWithKey(req, ctx, handler, opts);
     let setCookie: string | null = null;
     try {
-      if (!signInConfig()) return notSignedIn(false);
+      if (signInMode() === "locked") return notSignedIn(false);
       if (!SAFE_METHODS.has(req.method.toUpperCase()) && !(isSameOrigin(req) && isJson(req))) {
         return json({ error: "Forbidden" }, 403);
       }
@@ -148,6 +163,7 @@ async function runWithKey<P extends RouteParams>(
   opts: RouteOptions,
 ): Promise<Response> {
   try {
+    // Google mode only: the demo has no extension (see the top of this file).
     if (!signInConfig()) return keyNotSignedIn();
     if (!SAFE_METHODS.has(req.method.toUpperCase()) && !isJson(req)) return json({ error: "Forbidden" }, 403);
     const auth = await authenticateExtensionKey(getDb(), req);
@@ -185,19 +201,20 @@ export interface AuthenticateOptions {
 }
 
 /**
- * The request's user, checked like route() does (locked mode, session, allowlist), without the
+ * The request's user, checked like route() does (locked mode, session, mayUse()), without the
  * Origin and JSON checks. Extends the session when due unless `{ extend: false }`; send the
  * returned `setCookie` with the response. Prefer route(); this is for handlers that must answer
  * with a redirect instead of a 401.
  */
 export async function authenticate(req: NextRequest, opts: AuthenticateOptions = {}): Promise<AuthResult> {
-  if (!signInConfig()) return { ok: false, clearCookie: false };
+  if (signInMode() === "locked") return { ok: false, clearCookie: false };
   const db = getDb();
   const found = await lookupSession(db, req);
   if (found.status === "none") return { ok: false, clearCookie: false };
   if (found.status === "invalid") return { ok: false, clearCookie: true };
-  if (!isAllowed(found.user.email)) {
-    // Removed from ALLOWED_EMAILS since signing in: end this session now.
+  if (!mayUse(found.user)) {
+    // Removed from ALLOWED_EMAILS since signing in, or a user of the other mode (a demo user in
+    // the real app, a Google account in the demo): end this session now.
     await deleteSession(db, found.session.id);
     return { ok: false, clearCookie: true };
   }

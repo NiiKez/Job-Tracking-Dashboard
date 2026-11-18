@@ -13,6 +13,7 @@ import { ExtensionSettings } from "./extension-settings";
 import { InboxSettings } from "./inbox-settings";
 import { KeywordRules } from "./keyword-rules";
 import { SettingsCard, SettingsSection } from "./settings-layout";
+import { useDemo } from "@/hooks/use-demo";
 import { useHydrated } from "@/hooks/use-hydrated";
 
 const SECTIONS = [
@@ -28,6 +29,8 @@ export function SettingsView() {
   const settingsQuery = useSettings();
   const hydrated = useHydrated();
   const settings = hydrated ? settingsQuery.data : undefined;
+  // The public demo's Inbox differs (no interval row): wait for /api/me rather than flash a row.
+  const { settled: meSettled, demo } = useDemo();
 
   const loadError = hydrated && settingsQuery.isError ? (
     <SettingsCard>
@@ -51,7 +54,8 @@ export function SettingsView() {
           title="Inbox"
           description="The mailbox that keeps your applications up to date."
         >
-          {loadError ?? (settings ? <InboxSettings settings={settings} /> : <RowsSkeleton rows={4} />)}
+          {loadError ??
+            (settings && meSettled ? <InboxSettings settings={settings} demo={!!demo} /> : <RowsSkeleton rows={4} />)}
         </SettingsSection>
 
         <SettingsSection

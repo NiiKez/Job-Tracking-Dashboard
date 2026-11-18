@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useDemo } from "@/hooks/use-demo";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { ApiError, EXTENSION_DOWNLOAD_HREF } from "@/lib/api/client";
 import { useExtensionOverview, useRevokeExtensionKey } from "@/lib/api/hooks";
@@ -37,7 +38,42 @@ function Code({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * Settings, Chrome extension. In the public demo (me.demo) an info card instead, and no request
+ * to /api/extension: the demo switches the extension off, and its routes answer 403. Until
+ * /api/me has answered, the skeleton, so the demo never asks and the real app never shows the card.
+ */
 export function ExtensionSettings() {
+  const { settled, demo } = useDemo();
+  if (demo) return <NotInDemo />;
+  if (!settled) return <ExtensionSkeleton />;
+  return <ExtensionPanel />;
+}
+
+/** What the demo shows in place of the extension's settings. */
+function NotInDemo() {
+  return (
+    <SettingsCard>
+      <div className="flex min-w-0 items-start gap-3 px-4 py-4">
+        <span
+          aria-hidden
+          className="flex size-9 shrink-0 items-center justify-center rounded-lg border bg-surface-sunken text-muted-foreground"
+        >
+          <Puzzle className="size-4" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-sm font-medium">The Chrome extension isn&apos;t available in the demo.</p>
+          <p className="mt-1 text-xs text-pretty text-muted-foreground">
+            In your own copy of the app you install it from here and connect it once. Its popup then fills in the job
+            from the page you&apos;re on.
+          </p>
+        </div>
+      </div>
+    </SettingsCard>
+  );
+}
+
+function ExtensionPanel() {
   const query = useExtensionOverview();
   const hydrated = useHydrated();
   const overview = hydrated ? query.data : undefined;

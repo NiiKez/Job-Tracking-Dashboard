@@ -82,7 +82,11 @@ function useConnectResultToast(inbox: Settings["inbox"]) {
   }, [address]);
 }
 
-export function InboxSettings({ settings }: { settings: Settings }) {
+/**
+ * Settings, Inbox. `demo`: the public demo (me.demo), where the inbox is the invented mail and
+ * timed syncs are off, so there is no interval to choose and the note says how the mail gets in.
+ */
+export function InboxSettings({ settings, demo = false }: { settings: Settings; demo?: boolean }) {
   const { save } = useSaveSettings();
   const check = useRunInboxCheck();
   const disconnect = useDisconnectInbox();
@@ -180,36 +184,38 @@ export function InboxSettings({ settings }: { settings: Settings }) {
         </div>
       </SettingsRow>
 
-      {/* Interval */}
-      <SettingsRow>
-        <div className="min-w-0">
-          <Label htmlFor="inbox-interval">Sync new emails</Label>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {inbox.connected
-              ? "How often new emails are fetched."
-              : "Connect the inbox to sync it automatically."}
-          </p>
-        </div>
-        <Select
-          value={String(inbox.intervalMinutes)}
-          onValueChange={(v) => save({ inbox: { intervalMinutes: Number(v) } })}
-          disabled={!inbox.connected}
-        >
-          <SelectTrigger id="inbox-interval" className={cn(SELECT_H, "w-full sm:w-48")}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {/* Keep a custom value from the API selectable. */}
-            {[...new Set([...INTERVALS, inbox.intervalMinutes])]
-              .sort((a, b) => a - b)
-              .map((m) => (
-                <SelectItem key={m} value={String(m)}>
-                  Every {m} min
-                </SelectItem>
-              ))}
-          </SelectContent>
-        </Select>
-      </SettingsRow>
+      {/* Interval (none in the public demo: it never syncs by itself) */}
+      {!demo && (
+        <SettingsRow>
+          <div className="min-w-0">
+            <Label htmlFor="inbox-interval">Sync new emails</Label>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {inbox.connected
+                ? "How often new emails are fetched."
+                : "Connect the inbox to sync it automatically."}
+            </p>
+          </div>
+          <Select
+            value={String(inbox.intervalMinutes)}
+            onValueChange={(v) => save({ inbox: { intervalMinutes: Number(v) } })}
+            disabled={!inbox.connected}
+          >
+            <SelectTrigger id="inbox-interval" className={cn(SELECT_H, "w-full sm:w-48")}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {/* Keep a custom value from the API selectable. */}
+              {[...new Set([...INTERVALS, inbox.intervalMinutes])]
+                .sort((a, b) => a - b)
+                .map((m) => (
+                  <SelectItem key={m} value={String(m)}>
+                    Every {m} min
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+        </SettingsRow>
+      )}
 
       {/* Last synced: an exact time, not "yesterday"; then the first scan and the last failure. */}
       <SettingsRow>
@@ -271,7 +277,15 @@ export function InboxSettings({ settings }: { settings: Settings }) {
         </Button>
       </SettingsRow>
 
-      {!inbox.configured ? (
+      {demo ? (
+        <SettingsNote>
+          <Info aria-hidden className="mt-px size-3.5 shrink-0" />
+          <span>
+            The demo has no Gmail: its inbox holds invented emails. Press{" "}
+            <span className="font-medium text-foreground">Sync now</span> to file them under their jobs.
+          </span>
+        </SettingsNote>
+      ) : !inbox.configured ? (
         <SettingsNote>
           <Info aria-hidden className="mt-px size-3.5 shrink-0" />
           <span>Gmail isn&apos;t set up on this server yet, so it can&apos;t be connected.</span>

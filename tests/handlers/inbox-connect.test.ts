@@ -38,7 +38,7 @@ vi.mock("@/lib/server/inbox/sync/engine", () => ({
   isSyncing: () => false,
 }));
 
-const STATE = "__Secure-jt_inbox_oauth";
+const STATE = "__Host-jt_inbox_oauth";
 const SESSION = "__Host-jt_session";
 const KEY = Buffer.from(KEY_HEX, "hex");
 const SETTINGS = `${APP_ORIGIN}/settings`;
@@ -104,7 +104,7 @@ describeDb("the Gmail connect routes", () => {
     expect(res.status).toBe(303);
     expect(res.headers.get("cache-control")).toBe("no-store");
     // The state cookie is single-use: cleared on every outcome.
-    expect(setCookieFor(res, STATE)).toMatch(/^__Secure-jt_inbox_oauth=; Path=\/api\/inbox; Max-Age=0; /);
+    expect(setCookieFor(res, STATE)).toMatch(/^__Host-jt_inbox_oauth=; Path=\/; Max-Age=0; /);
     return { res, google, verifier, location: res.headers.get("location") };
   }
 
@@ -123,7 +123,7 @@ describeDb("the Gmail connect routes", () => {
   /* -------------------------------------------------------- connect */
 
   describe("GET /api/inbox/connect", () => {
-    it("sends the browser to Google for gmail.readonly, with a state cookie for /api/inbox", async () => {
+    it("sends the browser to Google for gmail.readonly, with its own __Host- state cookie", async () => {
       const { res, google, state, stateCookie } = await begin();
       expect(res.headers.get("cache-control")).toBe("no-store");
       expect(google.origin + google.pathname).toBe("https://accounts.google.com/o/oauth2/v2/auth");
@@ -137,13 +137,13 @@ describeDb("the Gmail connect routes", () => {
       expect(q.get("code_challenge_method")).toBe("S256");
       expect(state).toMatch(/^[A-Za-z0-9_-]{43}$/);
       expect(setCookieFor(res, STATE)).toMatch(
-        /^__Secure-jt_inbox_oauth=[A-Za-z0-9_-]+; Path=\/api\/inbox; Max-Age=600; Secure; HttpOnly; SameSite=Lax$/,
+        /^__Host-jt_inbox_oauth=[A-Za-z0-9_-]+; Path=\/; Max-Age=600; Secure; HttpOnly; SameSite=Lax$/,
       );
       const stored = JSON.parse(Buffer.from(stateCookie.split("=")[1], "base64url").toString("utf8"));
       expect(stored.s).toBe(state);
       expect(stored.n).toBeNull();
       // Sign-in's own state cookie is untouched.
-      expect(setCookieFor(res, "__Secure-jt_oauth")).toBeUndefined();
+      expect(setCookieFor(res, "__Host-jt_oauth")).toBeUndefined();
     });
 
     it("sends a signed-out browser to sign in, then back to Settings", async () => {
@@ -295,8 +295,11 @@ describeDb("the Gmail connect routes", () => {
       const missing = await back(`code=c&state=${first.state}`, [session.cookie]);
       expect(missing.headers.get("location")).toBe(failed("state"));
       // Sign-in's state cookie does not count: it is another flow.
-      const signIn = await back(`code=c&state=${first.state}`, [session.cookie, first.stateCookie.replace(STATE, "__Secure-jt_oauth")]);
+      const signIn = await back(`code=c&state=${first.state}`, [session.cookie, first.stateCookie.replace(STATE, "__Host-jt_oauth")]);
       expect(signIn.headers.get("location")).toBe(failed("state"));
+      // Nor does the name from before Path=/ (__Secure-, Path=/api/inbox), which a sibling host could plant.
+      const old = await back(`code=c&state=${first.state}`, [session.cookie, first.stateCookie.replace(STATE, "__Secure-jt_inbox_oauth")]);
+      expect(old.headers.get("location")).toBe(failed("state"));
       expect(google.urls).toEqual([]);
     });
 

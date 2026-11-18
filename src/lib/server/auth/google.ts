@@ -22,8 +22,8 @@ import type { OAuthStateCookie } from "./oauth-state";
 
 export const SIGN_IN_REDIRECT_PATH = "/auth/google/callback";
 export const SIGN_IN_SCOPES = ["openid", "email", "profile"] as const;
-/** The sign-in flow's state cookie: sent to /auth/* only. */
-export const SIGN_IN_STATE_COOKIE: OAuthStateCookie = { name: "jt_oauth", path: "/auth" };
+/** The sign-in flow's state cookie (Path=/, `__Host-` under https: see oauth-state.ts). */
+export const SIGN_IN_STATE_COOKIE: OAuthStateCookie = { name: "jt_oauth" };
 
 /** Google's token endpoint answers within a few seconds; a hanging exchange fails the sign-in. */
 const EXCHANGE_TIMEOUT_MS = 10_000;

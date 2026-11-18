@@ -5,8 +5,8 @@ import { signInConfig } from "@/lib/server/env";
 import { redirectTo } from "@/lib/server/auth/guard";
 
 /**
- * Starts Google sign-in: stores state, PKCE verifier and the sanitized ?next= in a cookie for
- * /auth (10 minutes) and sends the browser to Google's account chooser. While sign-in is locked it
+ * Starts Google sign-in: stores state, PKCE verifier and the sanitized ?next= in a short-lived
+ * cookie (10 minutes) and sends the browser to Google's account chooser. While sign-in is locked it
  * goes back to /login?error=not_configured instead.
  */
 export async function GET(req: NextRequest) {

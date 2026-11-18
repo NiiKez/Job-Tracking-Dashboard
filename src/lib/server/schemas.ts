@@ -54,18 +54,38 @@ export const reviewActionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("dismiss") }),
 ]);
 
+/** A language code as a keyword rule stores it ("en", "de", "pt-BR"): the keyword_rules check. */
+const languageSchema = z.string().trim().min(2).max(5);
+
 export const ruleInputSchema = z.object({
   status: ruleStatusSchema,
   phrase: z.string().trim().min(2, "Use at least 2 characters").max(120),
-  language: z.string().trim().min(2).max(5),
+  language: languageSchema,
 });
 
+/**
+ * Caps on the rule tester's input, so a request cannot make it work on any amount of text. The
+ * header fields take what the inbox keeps of a real message (MAX_NAME and MAX_ADDRESS in
+ * src/lib/server/inbox/parse/address.ts, MAX_SUBJECT in parse/gmail-message.ts). The body is
+ * pasted raw, quoted replies and all, so it gets more than the 20,000 characters the inbox keeps
+ * after cleaning: as much as a job description.
+ */
+export const CLASSIFY_LIMITS = { fromName: 200, fromAddress: 320, subject: 1_000, body: 50_000 } as const;
+
+/** POST /api/classify (the rule tester). */
 export const classifyInputSchema = z.object({
-  fromName: z.string().optional(),
-  fromAddress: z.string().default(""),
-  subject: z.string().default(""),
-  body: z.string().default(""),
+  fromName: z.string().max(CLASSIFY_LIMITS.fromName).optional(),
+  fromAddress: z.string().max(CLASSIFY_LIMITS.fromAddress).default(""),
+  subject: z.string().max(CLASSIFY_LIMITS.subject).default(""),
+  body: z.string().max(CLASSIFY_LIMITS.body).default(""),
 });
+
+/**
+ * At most this many languages in settings. Six have stopwords and labels today and a new user
+ * has two; the Settings screen never sends the list (a rule's new language joins it on the
+ * server), so the cap only stops a hand-made request from storing an endless one.
+ */
+export const MAX_SETTINGS_LANGUAGES = 20;
 
 /**
  * PATCH /api/settings. The inbox block takes only intervalMinutes: provider, address and
@@ -78,7 +98,7 @@ export const settingsPatchSchema = z
     noResponseDays: z.number().int().min(7).max(120),
     createFromConfirmation: z.boolean(),
     reviewUncertain: z.boolean(),
-    languages: z.array(z.string()),
+    languages: z.array(languageSchema).max(MAX_SETTINGS_LANGUAGES),
   })
   .partial();
 

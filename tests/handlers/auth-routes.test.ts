@@ -16,7 +16,7 @@ vi.mock("next/server", async (importOriginal) => ({
 }));
 
 const SESSION = "__Host-jt_session";
-const STATE = "__Secure-jt_oauth";
+const STATE = "__Host-jt_oauth";
 const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 
 /** "name=value" from a Set-Cookie value. */
@@ -89,7 +89,7 @@ describeDb("/auth routes", () => {
       expect(state).toMatch(/^[A-Za-z0-9_-]{43}$/);
 
       expect(setCookieFor(res, STATE)).toMatch(
-        /^__Secure-jt_oauth=[A-Za-z0-9_-]+; Path=\/auth; Max-Age=600; Secure; HttpOnly; SameSite=Lax$/,
+        /^__Host-jt_oauth=[A-Za-z0-9_-]+; Path=\/; Max-Age=600; Secure; HttpOnly; SameSite=Lax$/,
       );
       const stored = JSON.parse(Buffer.from(cookie.split("=")[1], "base64url").toString("utf8"));
       expect(stored.s).toBe(state);
@@ -142,7 +142,7 @@ describeDb("/auth routes", () => {
       expect(sent[0].get("redirect_uri")).toBe(`${APP_ORIGIN}/auth/google/callback`);
 
       // State cookie cleared, session cookie set.
-      expect(setCookieFor(res, STATE)).toMatch(/^__Secure-jt_oauth=; Path=\/auth; Max-Age=0; /);
+      expect(setCookieFor(res, STATE)).toMatch(/^__Host-jt_oauth=; Path=\/; Max-Age=0; /);
       const session = setCookieFor(res, SESSION)!;
       expect(session).toMatch(
         /^__Host-jt_session=[A-Za-z0-9_-]{43}; Path=\/; Max-Age=2592000; Secure; HttpOnly; SameSite=Lax$/,
@@ -205,6 +205,18 @@ describeDb("/auth routes", () => {
       expect((await back("code=abc", cookie)).headers.get("location")).toBe(`${failed}&next=%2Freview`);
       expect(fetchMock).not.toHaveBeenCalled();
       expect(await counts()).toEqual({ users: 0, sessions: 0 });
+    });
+
+    it("ignores the state under the old __Secure- name (Path=/auth): that sign-in fails once, a new one works", async () => {
+      const old = await begin("/review");
+      const { fetchMock } = stubTokenEndpoint(idTokenAnswer(googleClaims(CLIENT_ID)));
+      vi.spyOn(console, "warn").mockImplementation(() => {});
+      const res = await back(`code=abc&state=${old.state}`, old.cookie.replace(`${STATE}=`, "__Secure-jt_oauth="));
+      expect(res.headers.get("location")).toBe(`${APP_ORIGIN}/login?error=failed`);
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      const retry = await begin("/review");
+      expect((await back(`code=abc&state=${retry.state}`, retry.cookie)).headers.get("location")).toBe(`${APP_ORIGIN}/review`);
     });
 
     it("fails when Google reports an error (e.g. the user cancelled)", async () => {

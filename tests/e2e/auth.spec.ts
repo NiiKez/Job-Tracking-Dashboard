@@ -160,13 +160,13 @@ test.describe("the trip to Google", () => {
     expect(q.get("code_challenge_method")).toBe("S256");
 
     // The browser now holds the flow: the same state, the verifier behind the challenge, and
-    // `next`, in a short-lived cookie sent to /auth only.
+    // `next`, in a short-lived cookie on Path=/ (which gives it the __Host- prefix over https).
     const flow = await signInFlow(context);
     expect(flow).toBeDefined();
     expect(q.get("state")).toBe(flow!.state);
     expect(q.get("code_challenge")).toBe(codeChallenge(flow!.codeVerifier));
     expect(flow!.next).toBe(next);
-    expect(flow!.cookie).toMatchObject({ path: "/auth", httpOnly: true, sameSite: "Lax" });
+    expect(flow!.cookie).toMatchObject({ path: "/", httpOnly: true, sameSite: "Lax" });
     const minutesLeft = (flow!.cookie.expires * 1000 - Date.now()) / 60_000;
     expect(minutesLeft).toBeGreaterThan(8);
     expect(minutesLeft).toBeLessThanOrEqual(10);

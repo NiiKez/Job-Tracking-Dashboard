@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { Google } from "arctic";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { SIGN_IN_STATE_COOKIE } from "@/lib/server/auth/google";
 import {
   CONNECT_ERROR_REASONS,
   connectAuthorizationUrl,
@@ -61,8 +62,9 @@ describe("constants and paths", () => {
     expect(settingsPath({ ok: false, reason: "scope_missing" })).toBe("/settings?inbox=error&reason=scope_missing");
   });
 
-  it("uses its own state cookie, sent to /api/inbox only", () => {
-    expect(INBOX_STATE_COOKIE).toEqual({ name: "jt_inbox_oauth", path: "/api/inbox" });
+  it("uses its own state cookie, apart from sign-in's (both Path=/, so __Host- under https)", () => {
+    expect(INBOX_STATE_COOKIE).toEqual({ name: "jt_inbox_oauth" });
+    expect(INBOX_STATE_COOKIE.name).not.toBe(SIGN_IN_STATE_COOKIE.name);
   });
 
   it("is configured only with Google sign-in and INBOX_TOKEN_KEY", () => {

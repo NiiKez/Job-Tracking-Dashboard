@@ -105,6 +105,33 @@ so a deploy that lost one rolls back. To run a production server locked or witho
 purpose, set `ALLOW_PARTIAL_SETUP=on`; then it behaves as above. `MAIL_SOURCE=fixture` also stops
 a production start, unless `APP_URL` is an http origin on `127.0.0.1`, `localhost` or `[::1]`.
 
+### Public demo
+
+The same build can run a second time as a public demo, switched on with `DEMO_MODE=on`. A
+visitor presses "Try the demo" and gets a private workspace of invented jobs and emails, which is
+deleted after 24 hours. "Sync now" files the invented mail from `fixtures/mail`, so the inbox
+works without Gmail. Google sign-in, Gmail and the timed inbox syncs are off.
+
+A demo needs three values and nothing else:
+
+```bash
+DATABASE_URL=postgresql://app@localhost:5432/job_tracker_demo
+APP_URL=https://demo.example.com
+DEMO_MODE=on
+```
+
+- The database's name must end in `_demo`, `_dev` or `_test`. Give the demo a database of its
+  own: every visitor writes to it.
+- It refuses to start if `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ALLOWED_EMAILS`,
+  `INBOX_TOKEN_KEY`, `INBOX_TOKEN_KEY_PREVIOUS`, `ALLOW_PARTIAL_SETUP` or `DEMO_URL` is set. The
+  real app needs some of these to start, so it cannot start as a demo by accident.
+- `MAIL_SOURCE` is `fixture` and `INBOX_SCHEDULER` is `off`; the other values are refused.
+- `APP_URL` is needed in development too. In production it must be https, except an http origin
+  on `127.0.0.1`, `localhost` or `[::1]` (a local test run of the production build).
+
+On the real app, set `DEMO_URL` to the demo's origin, for example `https://demo.example.com`, and
+its sign-in page shows a "Try the demo" link.
+
 ## Chrome extension
 
 The extension lives in [`extension/`](./extension). `npm run build` builds it before the app, and
@@ -153,7 +180,8 @@ to Settings when there is a newer one.
 Names only. Values go in `.env.local` for development. [`.env.example`](./.env.example) lists the
 same names. The build needs none of them. An empty value counts as missing. "Without it" is for
 development; in production (`npm start`) the four sign-in values and `INBOX_TOKEN_KEY` are needed
-to start unless `ALLOW_PARTIAL_SETUP=on` ([Locked mode](#locked-mode)).
+to start unless `ALLOW_PARTIAL_SETUP=on` ([Locked mode](#locked-mode)). A demo (`DEMO_MODE=on`)
+needs only `DATABASE_URL` and `APP_URL` ([Public demo](#public-demo)).
 
 | Name | What it is for | Without it |
 | --- | --- | --- |
@@ -164,10 +192,12 @@ to start unless `ALLOW_PARTIAL_SETUP=on` ([Locked mode](#locked-mode)).
 | `ALLOWED_EMAILS` | Comma-separated list of accounts that may sign in | Locked mode |
 | `INBOX_TOKEN_KEY` | 32 random bytes as 64 hex characters. Encrypts the Gmail refresh token. | Gmail is not set up |
 | `INBOX_TOKEN_KEY_PREVIOUS` | Optional. The old key while rotating. | |
-| `MAIL_SOURCE` | `gmail` (default) or `fixture` (development and tests). Production refuses `fixture` unless `APP_URL` is an http loopback origin. | `gmail` |
-| `INBOX_SCHEDULER` | `on` (default) or `off`. `off` stops the timed Gmail syncs only: the 90-day ledger clean-up and the no-response sweep run either way. | `on` |
+| `MAIL_SOURCE` | `gmail` (default) or `fixture` (development and tests). Production refuses `fixture` unless `APP_URL` is an http loopback origin. | `gmail`; `fixture` in the demo |
+| `INBOX_SCHEDULER` | `on` (default) or `off`. `off` stops the timed Gmail syncs only: the 90-day ledger clean-up and the no-response sweep run either way. | `on`; `off` in the demo |
 | `INBOX_BACKFILL_DAYS` | Days of mail to scan on first connect, 1 to 365 | 30 |
 | `ALLOW_PARTIAL_SETUP` | `on` or `off`. Production only: `on` lets the app start without sign-in (locked) or without `INBOX_TOKEN_KEY` (no Gmail). It never allows `MAIL_SOURCE=fixture`. | `off`: production needs them all |
+| `DEMO_MODE` | `on` or `off`. `on` runs this copy as the public demo ([Public demo](#public-demo)). | `off` |
+| `DEMO_URL` | Real app only. The public demo's origin, for example `https://demo.example.com`: https, or http on `127.0.0.1`, `localhost` or `[::1]`, and never the app's own origin. The sign-in page links to it. | No link to a demo |
 | `TEST_DATABASE_URL` | Database for the tests. Development and CI only. | Database tests are skipped |
 
 There is no session secret: sessions are random tokens, stored hashed in the database. There are no

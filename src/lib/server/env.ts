@@ -2,8 +2,8 @@ import "server-only";
 import { z } from "zod";
 
 /**
- * Server configuration, from environment variables only. The names are listed in
- * docs/plan/README.md ("Environment variables") and .env.example.
+ * Server configuration, from environment variables only. The names are listed in README.md
+ * ("Environment variables") and .env.example.
  *
  * - Read lazily, never at import time: `next build` runs without any environment.
  * - An empty or blank value counts as missing. Outside production a missing value switches its
@@ -22,6 +22,22 @@ import { z } from "zod";
  *     loopback (127.0.0.1, localhost or [::1], any port): a production build run locally, such
  *     as scripts/scheduler-check.mts, which no browser elsewhere can reach. An https APP_URL,
  *     any other host, or none is refused.
+ * - DEMO_MODE=on makes this copy the public demo (docs/plan/5-public-demo.md): visitors get
+ *   throwaway workspaces with invented data; Google sign-in, Gmail and the timed inbox syncs are
+ *   off. It starts with DATABASE_URL and APP_URL alone. Its rules hold in every NODE_ENV, so the
+ *   real app cannot become a demo by accident:
+ *   - parseEnv(): GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, ALLOWED_EMAILS, INBOX_TOKEN_KEY,
+ *     INBOX_TOKEN_KEY_PREVIOUS, ALLOW_PARTIAL_SETUP and DEMO_URL must not be set at all (any
+ *     present value, even ALLOW_PARTIAL_SETUP=off): the real app cannot start without some of
+ *     them. The database name in DATABASE_URL must end in _demo, _dev or _test. MAIL_SOURCE
+ *     defaults to fixture and gmail is an error; INBOX_SCHEDULER defaults to off and on is an
+ *     error (off stops the timed syncs only; the scheduler's clean-ups still run).
+ *   - checkEnv(): APP_URL must be set, because cookies and the Origin check are built from it. In
+ *     production it must be https (the session cookie's __Host- prefix), except an http origin
+ *     on the loopback, as for fixture mail: CI and local smoke runs of a production build. The
+ *     production rules for sign-in, INBOX_TOKEN_KEY and fixture mail do not apply.
+ * - DEMO_URL is for the real app: the demo's origin, which its sign-in page links to. https, or
+ *   http on the loopback; never APP_URL's own origin.
  * - A value that is present but malformed is an error. checkEnv() turns it into a failed start,
  *   so a bad deploy rolls back. Messages name the variable and the rule, never the value.
  *
@@ -33,8 +49,11 @@ import { z } from "zod";
  *                                 malformed value, a missing DATABASE_URL, or (when `nodeEnv`,
  *                                 default process.env.NODE_ENV, is "production") the rules
  *                                 above; logs what is off.
+ *   signInMode(): SignInMode      "demo" when DEMO_MODE is on, "google" when signInConfig() is
+ *                                 not null, else "locked"
  *   signInConfig(): SignInConfig | null
- *                                 what sign-in needs, or null when sign-in is locked
+ *                                 what Google sign-in needs, or null when it is off: sign-in is
+ *                                 locked, or this is the demo (it has no Google values)
  *   appUrl(): URL | null          APP_URL as an origin URL (path "/"); build redirects with
  *                                 new URL("/login", appUrl())
  *   appOrigin(): string | null    "https://host[:port]": what a browser sends as Origin
@@ -64,7 +83,20 @@ export interface Env {
   inboxBackfillDays: number;
   /** ALLOW_PARTIAL_SETUP=on: production may start without sign-in or Gmail (checkEnv). */
   allowPartialSetup: boolean;
+  /**
+   * DEMO_MODE=on: this copy is the public demo. Then every Google value is null, mailSource is
+   * "fixture" and inboxSchedulerEnabled is false (parseEnv refuses anything else).
+   */
+  demoMode: boolean;
+  /**
+   * DEMO_URL reduced to its origin, e.g. "https://demo.example.com" (no trailing slash): the demo
+   * the real app's sign-in page links to. Always null in demo mode.
+   */
+  demoUrl: string | null;
 }
+
+/** Who may sign in, and how: see signInMode(). */
+export type SignInMode = "google" | "demo" | "locked";
 
 export interface SignInConfig {
   clientId: string;
@@ -109,10 +141,40 @@ const PROBLEMS = {
   INBOX_SCHEDULER: 'must be "on" or "off"',
   INBOX_BACKFILL_DAYS: "must be a whole number of days from 1 to 365",
   ALLOW_PARTIAL_SETUP: 'must be "on" or "off"',
+  DEMO_MODE: 'must be "on" or "off"',
+  DEMO_URL:
+    "must be an https origin such as https://example.com, without a path, query, fragment or credentials (http only on 127.0.0.1, localhost or [::1])",
 } as const;
 
 type Name = keyof typeof PROBLEMS;
 const NAMES = Object.keys(PROBLEMS) as Name[];
+
+/**
+ * The real app's values, which a demo must not have: DEMO_MODE=on beside any of them (any
+ * present value) is an error. The real app cannot start without the Google values and
+ * INBOX_TOKEN_KEY (or ALLOW_PARTIAL_SETUP), so it cannot start as a demo either.
+ */
+const NOT_IN_DEMO = [
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_CLIENT_SECRET",
+  "ALLOWED_EMAILS",
+  "INBOX_TOKEN_KEY",
+  "INBOX_TOKEN_KEY_PREVIOUS",
+  "ALLOW_PARTIAL_SETUP",
+  "DEMO_URL",
+] as const satisfies readonly Name[];
+
+// The demo's rules between variables, in fixed wordings too.
+const DEMO_PROBLEMS = {
+  notInDemo: "must not be set when DEMO_MODE is on",
+  database: "must name a database whose name ends in _demo, _dev or _test when DEMO_MODE is on",
+  mailSource: "must not be gmail when DEMO_MODE is on; the demo reads fixture mail",
+  scheduler: "must not be on when DEMO_MODE is on; timed syncs would file the demo mail before the visitor asks",
+} as const;
+
+/** Follows the list when a demo rule was broken: how the real app could have hit it. */
+const DEMO_NOTE =
+  "DEMO_MODE=on runs the public demo, without Google sign-in or Gmail; the real app must not set it.";
 
 /** Blank counts as missing; anything else is trimmed. */
 const present = (value: unknown) => (typeof value === "string" && value.trim() !== "" ? value.trim() : undefined);
@@ -142,20 +204,54 @@ function isOrigin(value: string): boolean {
   );
 }
 
+/** Hosts of an origin that only this machine reaches (URL.hostname spelling). */
+const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]"]);
+
+/** An http origin on this machine's loopback, any port: no browser elsewhere can reach it. */
+function isLoopbackHttp(origin: string): boolean {
+  const url = new URL(origin);
+  return url.protocol === "http:" && LOOPBACK_HOSTS.has(url.hostname);
+}
+
+/** DEMO_URL: an origin as APP_URL, https or else http on the loopback. */
+function isDemoOrigin(value: string): boolean {
+  return isOrigin(value) && (new URL(value).protocol === "https:" || isLoopbackHttp(value));
+}
+
 /**
- * A URL postgres.js 3 can parse. Its parser (parseUrl in postgres/src/index.js, mirrored here)
- * runs when the client is created; a URL it cannot read would throw there instead, with an error
- * that carries the whole connection string (Node's TypeError keeps its `input`).
+ * The URL as postgres.js 3 reads it, or null when it cannot. Its parser (parseUrl in
+ * postgres/src/index.js, mirrored here) runs when the client is created; a URL it cannot read
+ * would throw there instead, with an error that carries the whole connection string (Node's
+ * TypeError keeps its `input`).
  */
-function isPostgresUrl(value: string): boolean {
-  if (!/^postgres(ql)?:\/\/\S+$/.test(value)) return false;
+function readPostgresUrl(value: string): URL | null {
+  if (!/^postgres(ql)?:\/\/\S+$/.test(value)) return null;
   try {
     const authority = value.slice(value.indexOf("://") + 3).split(/[?/]/)[0];
     const host = decodeURIComponent(authority.slice(authority.indexOf("@") + 1));
     const url = new URL(value.replace(host, host.split(",")[0]));
     decodeURIComponent(url.username);
     decodeURIComponent(url.password);
-    return true;
+    return url;
+  } catch {
+    return null;
+  }
+}
+
+const isPostgresUrl = (value: string) => readPostgresUrl(value) !== null;
+
+/**
+ * Every database name in a DATABASE_URL ends in _demo, _dev or _test: the path (URL-decoded) and
+ * any `database` query parameter, which postgres.js sends after the path's name, so it would win
+ * (parseOptions and StartupMessage in postgres/src). No name at all is refused too: postgres.js
+ * would fall back to PGDATABASE or the user name.
+ */
+function isDemoDatabase(value: string): boolean {
+  const url = readPostgresUrl(value);
+  if (!url) return false;
+  try {
+    const names = [decodeURIComponent(url.pathname.slice(1)), ...url.searchParams.getAll("database")];
+    return names.every((name) => /_(demo|dev|test)$/.test(name));
   } catch {
     return false;
   }
@@ -194,22 +290,64 @@ const schema = z.object({
       .pipe(z.number().int().min(1).max(365)),
   ),
   ALLOW_PARTIAL_SETUP: optional(z.enum(["on", "off"])),
+  DEMO_MODE: optional(z.enum(["on", "off"])),
+  DEMO_URL: optional(
+    z
+      .string()
+      .refine(isDemoOrigin)
+      .transform((s) => new URL(s).origin),
+  ),
 });
 
-/** Parses an environment (process.env or a test object). Throws EnvError on malformed values. */
+/**
+ * Parses an environment (process.env or a test object). Throws EnvError on malformed values and
+ * on the demo's rules (see the top of this file). One problem per variable, listed in a fixed
+ * order: in demo mode a real-app value is named as "must not be set" even when it is also
+ * malformed, since it has to go either way.
+ */
 export function parseEnv(source: Record<string, string | undefined>): Env {
   const result = schema.safeParse(source);
-  const broken = new Set<Name>();
-  for (const issue of result.error?.issues ?? []) broken.add(issue.path[0] as Name);
-  const problems: Array<[Name, string]> = NAMES.filter((name) => broken.has(name)).map((name) => [
-    name,
-    PROBLEMS[name],
-  ]);
-  // A previous key is only used beside a current one; alone it would leave Gmail off unnoticed.
-  if (!broken.has("INBOX_TOKEN_KEY_PREVIOUS") && present(source.INBOX_TOKEN_KEY_PREVIOUS) && !present(source.INBOX_TOKEN_KEY)) {
-    problems.push(["INBOX_TOKEN_KEY_PREVIOUS", "is set but INBOX_TOKEN_KEY is not"]);
+  const found = new Map<Name, string>();
+  const demo = present(source.DEMO_MODE) === "on";
+  let demoRule = false;
+  if (demo) {
+    for (const name of NOT_IN_DEMO) {
+      if (present(source[name]) === undefined) continue;
+      found.set(name, DEMO_PROBLEMS.notInDemo);
+      demoRule = true;
+    }
   }
-  if (!result.success || problems.length > 0) throw new EnvError(problems);
+  for (const issue of result.error?.issues ?? []) {
+    const name = issue.path[0] as Name;
+    if (!found.has(name)) found.set(name, PROBLEMS[name]);
+  }
+  /** The trimmed value of a variable that is present and has no problem yet. */
+  const valid = (name: Name) => (found.has(name) ? undefined : present(source[name]));
+
+  // A previous key is only used beside a current one; alone it would leave Gmail off unnoticed.
+  if (valid("INBOX_TOKEN_KEY_PREVIOUS") && !present(source.INBOX_TOKEN_KEY)) {
+    found.set("INBOX_TOKEN_KEY_PREVIOUS", "is set but INBOX_TOKEN_KEY is not");
+  }
+  // A link from the app to itself; both are valid origins here.
+  const demoUrl = valid("DEMO_URL");
+  const app = valid("APP_URL");
+  if (demoUrl && app && new URL(demoUrl).origin === new URL(app).origin) {
+    found.set("DEMO_URL", "must not be the same origin as APP_URL");
+  }
+  if (demo) {
+    const databaseUrl = valid("DATABASE_URL");
+    const broken: Array<[Name, string]> = [];
+    if (databaseUrl && !isDemoDatabase(databaseUrl)) broken.push(["DATABASE_URL", DEMO_PROBLEMS.database]);
+    if (valid("MAIL_SOURCE") === "gmail") broken.push(["MAIL_SOURCE", DEMO_PROBLEMS.mailSource]);
+    if (valid("INBOX_SCHEDULER") === "on") broken.push(["INBOX_SCHEDULER", DEMO_PROBLEMS.scheduler]);
+    for (const [name, problem] of broken) found.set(name, problem);
+    demoRule ||= broken.length > 0;
+  }
+
+  if (!result.success || found.size > 0) {
+    const problems = NAMES.filter((name) => found.has(name)).map((name): [Name, string] => [name, found.get(name)!]);
+    throw new EnvError(problems, demoRule ? DEMO_NOTE : undefined);
+  }
 
   const v = result.data;
   return Object.freeze({
@@ -220,10 +358,12 @@ export function parseEnv(source: Record<string, string | undefined>): Env {
     allowedEmails: v.ALLOWED_EMAILS ? new Set(v.ALLOWED_EMAILS) : null,
     inboxTokenKey: v.INBOX_TOKEN_KEY ?? null,
     inboxTokenKeyPrevious: v.INBOX_TOKEN_KEY_PREVIOUS ?? null,
-    mailSource: v.MAIL_SOURCE ?? "gmail",
-    inboxSchedulerEnabled: (v.INBOX_SCHEDULER ?? "on") === "on",
+    mailSource: v.MAIL_SOURCE ?? (demo ? "fixture" : "gmail"),
+    inboxSchedulerEnabled: (v.INBOX_SCHEDULER ?? (demo ? "off" : "on")) === "on",
     inboxBackfillDays: v.INBOX_BACKFILL_DAYS ?? 30,
     allowPartialSetup: v.ALLOW_PARTIAL_SETUP === "on",
+    demoMode: demo,
+    demoUrl: v.DEMO_URL ?? null,
   });
 }
 
@@ -250,19 +390,21 @@ function missingForSignIn(env: Env): string[] {
   return missing;
 }
 
-/** Hosts of an APP_URL that only this machine reaches (URL.hostname spelling). */
-const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]"]);
-
-/** APP_URL is an http origin on the loopback: fixture mail may run a production build there. */
+/**
+ * APP_URL is an http origin on the loopback: a production build that only this machine reaches.
+ * It may use fixture mail, and a demo there may run without https.
+ */
 function isLoopbackApp(env: Env): boolean {
-  if (!env.appOrigin) return false;
-  const url = new URL(env.appOrigin);
-  return url.protocol === "http:" && LOOPBACK_HOSTS.has(url.hostname);
+  return env.appOrigin !== null && isLoopbackHttp(env.appOrigin);
 }
 
 /** Follows the missing variables in production's error: what the opt-out does. */
 const PARTIAL_SETUP_NOTE =
   "Production needs sign-in and Gmail set up; ALLOW_PARTIAL_SETUP=on starts without them, with those features off.";
+
+/** The one line checkEnv() logs in demo mode, instead of one per feature that is off. */
+const DEMO_LINE =
+  "env: DEMO_MODE is on: Google sign-in, Gmail and the timed inbox syncs are off; visitors get throwaway workspaces";
 
 /**
  * Start-up check, called from src/instrumentation.ts. Throws EnvError, which stops the start, on
@@ -270,6 +412,11 @@ const PARTIAL_SETUP_NOTE =
  * MAIL_SOURCE=fixture (unless APP_URL is an http loopback origin), and on a missing sign-in
  * value or INBOX_TOKEN_KEY unless ALLOW_PARTIAL_SETUP is on. Every problem is named in one
  * message. Otherwise logs one line per feature that is off.
+ *
+ * In demo mode (DEMO_MODE=on) it throws on a missing APP_URL in every NODE_ENV, and in
+ * production on an APP_URL that is not https unless it is an http loopback origin; the
+ * production rules for sign-in, INBOX_TOKEN_KEY and fixture mail do not apply. It logs DEMO_LINE
+ * only.
  *
  * `nodeEnv` is a parameter so tests can check production. In a production build Next.js inlines
  * process.env.NODE_ENV as "production" (build/define-env.js), so `next start` is always strict,
@@ -283,15 +430,27 @@ export function checkEnv(
   const production = nodeEnv === "production";
   const locked = missingForSignIn(env);
   const missing = env.inboxTokenKey ? locked : [...locked, "INBOX_TOKEN_KEY"];
-  // Strict only where the deploy's health check can catch it; development keeps locked mode.
-  const strict = production && !env.allowPartialSetup && missing.length > 0;
+  // Strict only where the deploy's health check can catch it; development keeps locked mode. A
+  // demo has none of these values by design (parseEnv refuses them).
+  const strict = production && !env.demoMode && !env.allowPartialSetup && missing.length > 0;
 
   const problems: Array<[string, string]> = [];
   if (!env.databaseUrl) problems.push(["DATABASE_URL", "is missing; the app cannot start without it"]);
   if (strict) for (const name of missing) problems.push([name, "is missing"]);
+  // The demo's session cookie, its redirects and the Origin check are built from APP_URL: without
+  // it every visitor would be turned away, in development too.
+  if (env.demoMode && !env.appOrigin) {
+    problems.push(["APP_URL", "is missing; DEMO_MODE=on needs it in every environment"]);
+  } else if (env.demoMode && production && !isSecureApp(env) && !isLoopbackApp(env)) {
+    problems.push([
+      "APP_URL",
+      "must be https when DEMO_MODE is on in production, unless it is an http origin on 127.0.0.1, localhost or [::1]",
+    ]);
+  }
   // Fixture mail is invented, and real job data must never receive it. ALLOW_PARTIAL_SETUP does
-  // not cover it; only a loopback APP_URL does, which no one outside this machine can use.
-  if (production && env.mailSource === "fixture" && !isLoopbackApp(env)) {
+  // not cover it; only a loopback APP_URL does, which no one outside this machine can use. The
+  // demo is the other exception: invented mail is all it has, in workspaces of invented data.
+  if (production && env.mailSource === "fixture" && !isLoopbackApp(env) && !env.demoMode) {
     problems.push([
       "MAIL_SOURCE",
       "must not be fixture in production unless APP_URL is an http origin on 127.0.0.1, localhost or [::1]; fixture mail is for development, tests and CI",
@@ -299,13 +458,29 @@ export function checkEnv(
   }
   if (problems.length > 0) throw new EnvError(problems, strict ? PARTIAL_SETUP_NOTE : undefined);
 
+  if (env.demoMode) {
+    log(DEMO_LINE);
+    return;
+  }
   if (locked.length > 0) log(`env: sign-in is locked, every request is signed out (missing: ${locked.join(", ")})`);
   if (!env.inboxTokenKey) log("env: Gmail is not set up (missing: INBOX_TOKEN_KEY)");
   if (env.mailSource === "fixture") log("env: MAIL_SOURCE is fixture, the inbox reads fixture mail instead of Gmail");
   if (!env.inboxSchedulerEnabled) log("env: INBOX_SCHEDULER is off, the inbox is checked only on request");
 }
 
-/** What sign-in needs, or null when it is locked. */
+/**
+ * Who may sign in: "demo" when DEMO_MODE is on (visitors enter throwaway workspaces), "google"
+ * when signInConfig() is not null (the allowlisted Google accounts), else "locked" (nobody).
+ */
+export function signInMode(env: Env = getEnv()): SignInMode {
+  if (env.demoMode) return "demo";
+  return signInConfig(env) ? "google" : "locked";
+}
+
+/**
+ * What Google sign-in needs, or null when it is off: sign-in is locked, or this is the demo
+ * (parseEnv refuses the Google values there, so this stays null without checking demoMode).
+ */
 export function signInConfig(env: Env = getEnv()): SignInConfig | null {
   if (!env.googleClientId || !env.googleClientSecret || !env.allowedEmails || !env.appOrigin) return null;
   return {

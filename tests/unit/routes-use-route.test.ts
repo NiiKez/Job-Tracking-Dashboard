@@ -15,16 +15,20 @@ const METHODS = new Set(["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIO
 
 // The route files that are not route()-wrapped, relative to src/app. Exact: each must exist.
 // Health answers without a session by design; the /auth routes do their own checks (state cookie
-// and PKCE, Origin on sign-out) and run before there is a session. The Gmail connect flow's two
+// and PKCE, Origin on sign-out) and run before there is a session. /auth/options answers the
+// signed-out sign-in page with the demo's address (DEMO_URL) and nothing else: no session, no
+// database (docs/plan/5-public-demo.md, "Step 8"). The Gmail connect flow's two
 // GET routes are browser navigations that must answer a redirect, not a 401: they check the
 // session with authenticate() (the same checks as route()), then the state cookie and PKCE
 // (src/lib/server/inbox/oauth/connect.ts, tests/handlers/inbox-connect.test.ts).
 const HEALTH = "api/health/route.ts";
+const AUTH_OPTIONS = "auth/options/route.ts";
 const NOT_WRAPPED = [
   HEALTH,
   "auth/google/route.ts",
   "auth/google/callback/route.ts",
   "auth/signout/route.ts",
+  AUTH_OPTIONS,
   "api/inbox/connect/route.ts",
   "api/inbox/callback/route.ts",
 ];
@@ -100,8 +104,8 @@ describe("every route uses route()", () => {
     expect(byAuth.session).toEqual(expect.arrayContaining(["api/me/route.ts GET", "api/extension/download/route.ts GET"]));
   });
 
-  it(`${HEALTH} exports only GET`, async () => {
-    const mod = (await import(path.join(APP_DIR, HEALTH))) as Record<string, unknown>;
+  it.each([HEALTH, AUTH_OPTIONS])("%s exports only GET", async (file) => {
+    const mod = (await import(path.join(APP_DIR, file))) as Record<string, unknown>;
     expect(Object.keys(mod)).toEqual(["GET"]);
     expect(typeof mod.GET).toBe("function");
   });

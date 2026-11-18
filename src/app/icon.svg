@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- The app's brand mark (the sidebar's briefcase), drawn on the 16 px grid like the extension's
+       icon-small.svg. Near-black tile in a light browser; flipped to a light tile in a dark one,
+       like the app's primary colour, so it doesn't sink into a dark tab bar. -->
+  <style>
+    .tile { fill: #171717; }
+    .mark { stroke: #fafafa; }
+    @media (prefers-color-scheme: dark) {
+      .tile { fill: #ececec; }
+      .mark { stroke: #141414; }
+    }
+  </style>
+  <rect class="tile" width="16" height="16" rx="3.5"/>
+  <g class="mark" fill="none" stroke-width="1" stroke-linejoin="round">
+    <rect x="3.5" y="6.5" width="9" height="6" rx="1"/>
+    <path d="M5.5 6.5V5.5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1V6.5"/>
+  </g>
+</svg>

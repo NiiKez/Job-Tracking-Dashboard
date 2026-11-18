@@ -6,6 +6,7 @@ import { inboxError } from "@/lib/server/inbox/sync/errors";
 import {
   isSchedulerRunning,
   LEDGER_CLEANUP_EVERY_MS,
+  PURGE_EVERY_MS,
   resetSchedulerForTests,
   startInboxScheduler,
   stopInboxScheduler,
@@ -21,12 +22,17 @@ import {
 const KEY = "b".repeat(64);
 const FIXTURE = parseEnv({ MAIL_SOURCE: "fixture" });
 const GMAIL = parseEnv({ INBOX_TOKEN_KEY: KEY });
+/** The public demo: DEMO_MODE=on, which makes MAIL_SOURCE fixture and INBOX_SCHEDULER off. */
+const DEMO = parseEnv({ DEMO_MODE: "on", APP_URL: "https://demo.example.com" });
 const HOUR = 3_600_000;
 /** The start line with every part running. */
 const STARTED = "inbox: scheduler started, every 60 s: timed syncs, the no-response sweep and the ledger clean-up";
 /** The start line when only the maintenance runs, and why. */
 const maintenanceOnly = (why: string) =>
   `inbox: scheduler started, every 60 s: no timed syncs (${why}), only the no-response sweep and the ledger clean-up`;
+/** The start line of the public demo. */
+const DEMO_STARTED =
+  "inbox: scheduler started, every 60 s: no timed syncs (demo mode: visitors sync by hand), only the no-response sweep, the ledger clean-up and the purge of expired demo workspaces (every 5 min)";
 
 /** Lets every pending promise settle (setImmediate is not faked). */
 const settle = () => new Promise<void>((resolve) => setImmediate(resolve));
@@ -94,6 +100,7 @@ function harness(opts: { due?: string[]; sweepable?: string[]; moveOnFailure?: b
       return 0;
     }),
     cleanLedger: vi.fn(async () => 0),
+    purgeWorkspaces: vi.fn(async () => 0),
     stopAllSyncs: vi.fn(),
     now: () => new Date(),
     log: (line: string) => {
@@ -297,6 +304,27 @@ describe("starting the scheduler", () => {
         expect(console.info).toHaveBeenLastCalledWith(maintenanceOnly(why));
         resetSchedulerForTests();
       }
+    });
+
+    it("starts it in demo mode, with the purge and without timed syncs", async () => {
+      vi.stubEnv("NEXT_RUNTIME", "nodejs");
+      const exit = vi.spyOn(process, "exit").mockImplementation((() => {
+        throw new Error("exit");
+      }) as typeof process.exit);
+      for (const name of ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "ALLOWED_EMAILS", "ALLOW_PARTIAL_SETUP", "DEMO_URL"]) {
+        vi.stubEnv(name, "");
+      }
+      vi.stubEnv("MAIL_SOURCE", "");
+      vi.stubEnv("DATABASE_URL", "postgresql://app:pw-1234@localhost:5432/job_tracker_demo");
+      vi.stubEnv("APP_URL", "http://127.0.0.1:3900");
+      vi.stubEnv("DEMO_MODE", "on");
+      resetEnvForTests();
+      const { register } = await import("@/instrumentation");
+      await register();
+      expect(exit).not.toHaveBeenCalled();
+      expect(isSchedulerRunning()).toBe(true);
+      expect(vi.getTimerCount()).toBe(1);
+      expect(console.info).toHaveBeenLastCalledWith(DEMO_STARTED);
     });
 
     it("does not start it during the build or on the edge runtime", async () => {
@@ -536,6 +564,101 @@ describe("a tick", () => {
     await advance(5 * TICK_MS);
     expect(h.deps.nextDue).toHaveBeenCalledTimes(5);
     expect(h.lines).toEqual([STARTED]);
+  });
+});
+
+describe("in demo mode", () => {
+  it("never syncs, even with a due connection, and runs the sweep and the ledger clean-up", async () => {
+    // An Env parseEnv would refuse (INBOX_SCHEDULER on in the demo): demoMode alone keeps the syncs off.
+    for (const env of [DEMO, { ...DEMO, inboxSchedulerEnabled: true }]) {
+      const h = harness({ due: ["user-a"], sweepable: ["user-x"] });
+      expect(startInboxScheduler({ deps: h.deps, env, signals: fakeProcess().host })).toBe("maintenance_only");
+      expect(h.lines).toEqual([DEMO_STARTED]);
+      await advance(TICK_MS);
+      expect(h.deps.nextDue).not.toHaveBeenCalled();
+      expect(h.deps.sync).not.toHaveBeenCalled();
+      expect(h.calls).toEqual(["sweep user-x"]);
+      expect(h.deps.cleanLedger).toHaveBeenCalledTimes(1);
+      resetSchedulerForTests();
+    }
+  });
+
+  it("purges expired workspaces on a new process's first tick, then every 5 minutes", async () => {
+    const h = harness();
+    const start = () => startInboxScheduler({ deps: h.deps, env: DEMO, signals: fakeProcess().host });
+    start();
+    expect(h.deps.purgeWorkspaces).not.toHaveBeenCalled();
+
+    await advance(TICK_MS);
+    expect(h.deps.purgeWorkspaces).toHaveBeenCalledTimes(1);
+    expect(h.deps.purgeWorkspaces).toHaveBeenLastCalledWith(new Date(Date.now()));
+    // Five minutes after the first one, not a tick sooner.
+    await advance(PURGE_EVERY_MS - TICK_MS);
+    expect(h.deps.purgeWorkspaces).toHaveBeenCalledTimes(1);
+    await advance(TICK_MS);
+    expect(h.deps.purgeWorkspaces).toHaveBeenCalledTimes(2);
+    await advance(PURGE_EVERY_MS);
+    expect(h.deps.purgeWorkspaces).toHaveBeenCalledTimes(3);
+    // The purge logs its own count (workspaces.ts); the tick adds no line for it.
+    expect(h.lines).toEqual([DEMO_STARTED]);
+
+    // A new process purges on its first tick.
+    resetSchedulerForTests();
+    start();
+    await advance(TICK_MS);
+    expect(h.deps.purgeWorkspaces).toHaveBeenCalledTimes(4);
+  });
+
+  it("logs a failed purge as a code and tries it again on the next tick, after the ledger clean-up", async () => {
+    const h = harness();
+    const order: string[] = [];
+    h.deps.cleanLedger = vi.fn(async () => {
+      order.push("ledger");
+      return 0;
+    });
+    h.deps.purgeWorkspaces = vi
+      .fn()
+      .mockImplementationOnce(async () => {
+        order.push("purge");
+        throw Object.assign(new Error("connect ECONNREFUSED 127.0.0.1:5432"), { code: "ECONNREFUSED" });
+      })
+      .mockImplementation(async () => {
+        order.push("purge");
+        return 2;
+      });
+    const warnings: string[] = [];
+    h.deps.log = (line, level) => void (level === "warn" ? warnings : h.lines).push(line);
+    startInboxScheduler({ deps: h.deps, env: DEMO, signals: fakeProcess().host });
+
+    await advance(TICK_MS);
+    expect(order).toEqual(["ledger", "purge"]);
+    expect(warnings).toEqual(["inbox: scheduler: demo workspace purge failed (ECONNREFUSED)"]);
+    await advance(TICK_MS);
+    expect(h.deps.purgeWorkspaces).toHaveBeenCalledTimes(2);
+    expect(warnings).toHaveLength(1);
+    await advance(TICK_MS);
+    expect(h.deps.purgeWorkspaces).toHaveBeenCalledTimes(2);
+  });
+
+  it("purges even when the gate query fails", async () => {
+    const h = harness();
+    h.deps.sweepable = vi.fn().mockRejectedValue(Object.assign(new Error("boom"), { code: "57P01" }));
+    const warnings: string[] = [];
+    h.deps.log = (line, level) => void (level === "warn" ? warnings : h.lines).push(line);
+    startInboxScheduler({ deps: h.deps, env: DEMO, signals: fakeProcess().host });
+    await advance(TICK_MS);
+    expect(h.deps.purgeWorkspaces).toHaveBeenCalledTimes(1);
+    expect(warnings).toEqual(["inbox: scheduler: tick failed (57P01)"]);
+  });
+
+  it("never purges outside demo mode", async () => {
+    for (const env of [FIXTURE, GMAIL, parseEnv({})]) {
+      const h = harness();
+      startInboxScheduler({ deps: h.deps, env, signals: fakeProcess().host });
+      await advance(PURGE_EVERY_MS + TICK_MS);
+      expect(h.deps.purgeWorkspaces).not.toHaveBeenCalled();
+      resetSchedulerForTests();
+    }
   });
 });
 

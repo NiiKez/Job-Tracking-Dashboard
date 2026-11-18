@@ -370,4 +370,26 @@ describeDb("the inbox scheduler", () => {
     expect(lines.at(-1)).toBe("inbox: scheduler: marked 2 no response");
     expect(lines).toHaveLength(2);
   });
+
+  it("in demo mode, purges the expired demo workspaces and nothing else", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    const env = parseEnv({ DEMO_MODE: "on", APP_URL: "https://demo.example.com" });
+    const owner = await createUser(); // not a demo user, however old
+    const [expired, live] = await Promise.all([25, 23].map(async (hours) => {
+      const [row] = await testSql()<{ id: string }[]>`
+        INSERT INTO users (google_sub, email, name, created_at)
+        VALUES ('demo:' || gen_random_uuid(), 'alex.' || ${hours}::int || '@demo.invalid', 'Alex Demo',
+                now() - make_interval(hours => ${hours}::int))
+        RETURNING id`;
+      return row.id;
+    }));
+    await testSql()`UPDATE users SET created_at = now() - interval '400 days' WHERE id = ${owner}`;
+    start({ env, expect: "maintenance_only", deps: { sync: vi.fn() } });
+
+    await runSchedulerTick();
+    const ids = (await testSql()<{ id: string }[]>`SELECT id FROM users`).map((r) => r.id);
+    expect(ids.sort()).toEqual([owner, live].sort());
+    expect(ids).not.toContain(expired);
+    expect(info).toHaveBeenCalledWith("demo: purged 1 expired workspace");
+  });
 });

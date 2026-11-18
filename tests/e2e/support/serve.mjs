@@ -10,14 +10,20 @@
 // 3. Runs `next start` on 127.0.0.1:E2E_PORT with a complete, invented production configuration:
 //    NODE_ENV=production (the strict start), a dummy Google client, ALLOWED_EMAILS with the e2e
 //    accounts, a fresh INBOX_TOKEN_KEY, MAIL_SOURCE=fixture (allowed in production only because
-//    APP_URL is an http loopback origin) and INBOX_SCHEDULER=off (the inbox is checked only when
-//    a test asks). Every variable .env.example names is set here, blank when unused: `next start`
+//    APP_URL is an http loopback origin), INBOX_SCHEDULER=off (the inbox is checked only when
+//    a test asks) and DEMO_URL from E2E_DEMO_URL (the demo server's origin, for the sign-in
+//    page's link). Every variable .env.example names is set here, blank when unused: `next start`
 //    reads .env.local too, and a value that is already in the environment wins over it, so
 //    nothing from the development configuration leaks into the run.
+//    With E2E_DEMO=on it starts the public demo instead, as the server runs it: DEMO_MODE=on with
+//    DATABASE_URL and APP_URL only, and every other variable blank (the demo refuses to start
+//    beside a Google value, ALLOWED_EMAILS or an INBOX_TOKEN_KEY). The scheduler runs as in the
+//    demo: no timed syncs, the purge of expired workspaces.
 //
 // Reads from its environment (set by playwright.config.ts): E2E_PORT, E2E_SCHEMA,
-// E2E_DATABASE_URL, E2E_TEST_DATABASE_URL, E2E_ALLOWED_EMAILS, E2E_GOOGLE_CLIENT_ID. Never prints
-// a value from it.
+// E2E_DATABASE_URL, E2E_TEST_DATABASE_URL, and E2E_ALLOWED_EMAILS, E2E_GOOGLE_CLIENT_ID and
+// optionally E2E_DEMO_URL for the e2e server, or E2E_DEMO=on for the demo server. Never prints a
+// value from it.
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
@@ -39,10 +45,13 @@ const databaseUrl = process.env.E2E_DATABASE_URL;
 const adminUrl = process.env.E2E_TEST_DATABASE_URL;
 const allowedEmails = process.env.E2E_ALLOWED_EMAILS;
 const googleClientId = process.env.E2E_GOOGLE_CLIENT_ID;
-if (!port || !schema || !databaseUrl || !adminUrl || !allowedEmails || !googleClientId) {
+const demoUrl = process.env.E2E_DEMO_URL ?? "";
+const demo = process.env.E2E_DEMO === "on";
+if (!port || !schema || !databaseUrl || !adminUrl || (!demo && (!allowedEmails || !googleClientId))) {
   fail("start it through Playwright (npm run test:e2e), which sets E2E_* for it");
 }
-if (!/^e2e[a-z0-9_]{0,40}$/.test(schema)) fail("E2E_SCHEMA is not a valid e2e schema name");
+// The e2e schema (settings.ts: "e2e" and up to 40 more), or the demo's (the same plus "_demo").
+if (!/^e2e[a-z0-9_]{0,45}$/.test(schema)) fail("E2E_SCHEMA is not a valid e2e schema name");
 
 /* ------------------------------------------------------------- the build */
 
@@ -105,6 +114,18 @@ const names = readFileSync(path.join(ROOT, ".env.example"), "utf8")
   .filter(Boolean);
 const blank = Object.fromEntries(names.map((name) => [name, ""]));
 
+// The real app's sign-in, Gmail key and fixture mail; or the demo's one switch.
+const mode = demo
+  ? { DEMO_MODE: "on" }
+  : {
+      GOOGLE_CLIENT_ID: googleClientId,
+      GOOGLE_CLIENT_SECRET: "e2e-not-a-secret",
+      ALLOWED_EMAILS: allowedEmails,
+      INBOX_TOKEN_KEY: randomBytes(32).toString("hex"),
+      MAIL_SOURCE: "fixture",
+      INBOX_SCHEDULER: "off",
+      DEMO_URL: demoUrl,
+    };
 const env = {
   ...process.env,
   ...blank,
@@ -114,12 +135,7 @@ const env = {
   PORT: port,
   DATABASE_URL: databaseUrl,
   APP_URL: `http://127.0.0.1:${port}`,
-  GOOGLE_CLIENT_ID: googleClientId,
-  GOOGLE_CLIENT_SECRET: "e2e-not-a-secret",
-  ALLOWED_EMAILS: allowedEmails,
-  INBOX_TOKEN_KEY: randomBytes(32).toString("hex"),
-  MAIL_SOURCE: "fixture",
-  INBOX_SCHEDULER: "off",
+  ...mode,
 };
 for (const name of Object.keys(env)) if (name.startsWith("E2E_")) delete env[name];
 

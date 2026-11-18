@@ -1,5 +1,6 @@
 import "server-only";
 import { getDb, type Db } from "@/lib/server/db/client";
+import { purgeExpiredWorkspaces } from "@/lib/server/demo/workspaces";
 import { getEnv, inboxTokenKeys, type Env } from "@/lib/server/env";
 import { deleteAllSeenBefore, LEDGER_DAYS } from "../repo";
 import { SWEEP_EVERY_MS, sweepableUserIds, sweepNoResponse } from "../sweep";
@@ -16,7 +17,8 @@ import { errorCode } from "./ingest";
  *                                   "started"          every part of a tick (below)
  *                                   "maintenance_only" steps 3 and 4 only, no timed syncs:
  *                                                      INBOX_SCHEDULER=off, or no INBOX_TOKEN_KEY
- *                                                      and MAIL_SOURCE is not "fixture"
+ *                                                      and MAIL_SOURCE is not "fixture"; or the
+ *                                                      public demo (DEMO_MODE=on): steps 3 to 5
  *                                   "build"            nothing: NEXT_PHASE is the production build
  *                                   "running"          nothing: a scheduler already runs in this
  *                                                      process (a flag on globalThis; also after a
@@ -62,9 +64,16 @@ import { errorCode } from "./ingest";
  *      cleans a user's ledger after each successful sync, but a disconnected mailbox, one that
  *      needs reconnecting, or one nobody checks while the timed syncs are off has none, and
  *      /privacy promises the 90 days.
+ *   5. The public demo only (DEMO_MODE=on): the purge of expired workspaces
+ *      (src/lib/server/demo/workspaces.ts purgeExpiredWorkspaces: demo users past their 24 hours,
+ *      with all their rows), every PURGE_EVERY_MS (and on a new process's first tick).
+ *      POST /auth/demo purges before each creation as well, in case the scheduler did not start.
+ *      The timed syncs are always off in the demo (parseEnv refuses INBOX_SCHEDULER=on there, and
+ *      this file checks demoMode too): the visitor's "Sync now" files the invented mail.
  *   Ticks never overlap: a timer that fires while one runs is skipped. Errors are caught per
  *   user (one user's failure does not stop the others) and logged as codes. One log line per
- *   tick, only when there was work: runs, failures, jobs marked, ledger rows deleted.
+ *   tick, only when there was work: runs, failures, jobs marked, ledger rows deleted, a failed
+ *   purge (the purge logs its own count: "demo: purged …").
  *
  * next_sync_at is the engine's business (repo.ts recordSyncSuccess / recordSyncFailure): the
  * finish time plus the interval from settings, read fresh each time; after failures the wait
@@ -91,6 +100,8 @@ import { errorCode } from "./ingest";
 export const TICK_MS = 60_000;
 /** How often the scheduler deletes old ledger rows of every user. */
 export const LEDGER_CLEANUP_EVERY_MS = 6 * 3_600_000;
+/** How often the scheduler purges the public demo's expired workspaces (demo mode only). */
+export const PURGE_EVERY_MS = 5 * 60_000;
 
 const DAY = 86_400_000;
 
@@ -114,6 +125,8 @@ export interface SchedulerDeps {
   sweep(userId: string, now: Date): Promise<number>;
   /** Deletes every user's ledger rows older than LEDGER_DAYS before `now`: how many. */
   cleanLedger(now: Date): Promise<number>;
+  /** The public demo: deletes the workspaces expired at `now` (and logs it): how many. */
+  purgeWorkspaces(now: Date): Promise<number>;
   stopAllSyncs(): void;
   now(): Date;
   log(line: string, level?: "info" | "warn"): void;
@@ -139,6 +152,8 @@ interface Scheduler {
   deps: SchedulerDeps;
   /** The timed syncs run (steps 1 and 2); false: maintenance only. */
   syncs: boolean;
+  /** The public demo's purge runs (step 5): DEMO_MODE=on. */
+  purge: boolean;
   signals: SignalHost;
   onSignal: (signal: StopSignal) => void;
   timer: ReturnType<typeof setInterval> | null;
@@ -150,6 +165,8 @@ interface Scheduler {
   lastSweep: Map<string, number>;
   /** Last ledger clean-up (ms since the epoch), for LEDGER_CLEANUP_EVERY_MS; null: none yet. */
   lastLedgerCleanup: number | null;
+  /** Last purge of expired demo workspaces (ms since the epoch), for PURGE_EVERY_MS; null: none yet. */
+  lastPurge: number | null;
 }
 
 // On globalThis: the flag that says a scheduler runs, seen by every copy of this module (Next
@@ -164,6 +181,7 @@ function defaultDeps(env: Env): SchedulerDeps {
     sweepable: (now) => sweepableUserIds(getDb(), now),
     sweep: async (userId, now) => (await sweepNoResponse(userId, { now })).length,
     cleanLedger: (now) => deleteAllSeenBefore(getDb(), new Date(now.getTime() - LEDGER_DAYS * DAY)),
+    purgeWorkspaces: (now) => purgeExpiredWorkspaces(getDb(), now),
     stopAllSyncs,
     now: () => new Date(),
     log: (line, level = "info") => (level === "warn" ? console.warn(line) : console.info(line)),
@@ -178,17 +196,21 @@ export function startInboxScheduler(opts: StartOptions = {}): StartResult {
   const env = opts.env ?? getEnv();
   const deps: SchedulerDeps = { ...defaultDeps(env), ...opts.deps };
   // Why the timed syncs are off, or null when they run. checkEnv() has named the variable; the
-  // start line says what it means for the inbox.
-  const syncsOff = !env.inboxSchedulerEnabled
-    ? "INBOX_SCHEDULER is off"
-    : env.mailSource !== "fixture" && !inboxTokenKeys(env)
-      ? "Gmail is not set up"
-      : null;
+  // start line says what it means for the inbox. The demo first: its INBOX_SCHEDULER is unset
+  // (off by default there), and the reason is the demo, not the variable.
+  const syncsOff = env.demoMode
+    ? "demo mode: visitors sync by hand"
+    : !env.inboxSchedulerEnabled
+      ? "INBOX_SCHEDULER is off"
+      : env.mailSource !== "fixture" && !inboxTokenKeys(env)
+        ? "Gmail is not set up"
+        : null;
 
   const signals = opts.signals ?? process;
   const s: Scheduler = {
     deps,
     syncs: syncsOff === null,
+    purge: env.demoMode,
     signals,
     onSignal: (signal) => onStopSignal(s, signal),
     timer: null,
@@ -197,6 +219,7 @@ export function startInboxScheduler(opts: StartOptions = {}): StartResult {
     tick: null,
     lastSweep: new Map(),
     lastLedgerCleanup: null,
+    lastPurge: null,
   };
   g.__jobTrackerInboxScheduler = s;
   s.timer = setInterval(() => void startTick(s), TICK_MS);
@@ -204,6 +227,12 @@ export function startInboxScheduler(opts: StartOptions = {}): StartResult {
   s.timer.unref();
   for (const signal of SIGNALS) signals.on(signal, s.onSignal);
   const every = `inbox: scheduler started, every ${TICK_MS / 1000} s`;
+  if (s.purge) {
+    deps.log(
+      `${every}: no timed syncs (${syncsOff}), only the no-response sweep, the ledger clean-up and the purge of expired demo workspaces (every ${PURGE_EVERY_MS / 60_000} min)`,
+    );
+    return "maintenance_only";
+  }
   if (syncsOff) {
     deps.log(`${every}: no timed syncs (${syncsOff}), only the no-response sweep and the ledger clean-up`);
     return "maintenance_only";
@@ -323,6 +352,8 @@ interface TickCounts {
   ledgerDeleted: number;
   /** The ledger clean-up failed (tried again on the next tick). */
   cleanupFailed: string | null;
+  /** The demo's purge failed (tried again on the next tick). */
+  purgeFailed: string | null;
 }
 
 async function tick(s: Scheduler): Promise<void> {
@@ -337,6 +368,7 @@ async function tick(s: Scheduler): Promise<void> {
     error: null,
     ledgerDeleted: 0,
     cleanupFailed: null,
+    purgeFailed: null,
   };
   try {
     const tried: string[] = [];
@@ -369,10 +401,12 @@ async function tick(s: Scheduler): Promise<void> {
   } catch (err) {
     counts.error = errorCode(err);
   }
-  // Apart from the steps above: a failing due or gate query must not hold the clean-up up.
+  // Apart from the steps above: a failing due or gate query must not hold the clean-ups up.
   if (!s.stopped) await cleanLedger(s, counts);
+  if (s.purge && !s.stopped) await purgeWorkspaces(s, counts);
   const line = summary(counts);
-  const warn = counts.failed.length || counts.sweepFailed.length || counts.error || counts.cleanupFailed;
+  const warn =
+    counts.failed.length || counts.sweepFailed.length || counts.error || counts.cleanupFailed || counts.purgeFailed;
   if (line) deps.log(line, warn ? "warn" : "info");
 }
 
@@ -385,6 +419,19 @@ async function cleanLedger(s: Scheduler, counts: TickCounts): Promise<void> {
     s.lastLedgerCleanup = now.getTime();
   } catch (err) {
     counts.cleanupFailed = errorCode(err);
+  }
+}
+
+/** Step 5 of a tick (demo mode), when PURGE_EVERY_MS have passed since the last one. */
+async function purgeWorkspaces(s: Scheduler, counts: TickCounts): Promise<void> {
+  const now = s.deps.now();
+  if (s.lastPurge !== null && now.getTime() - s.lastPurge < PURGE_EVERY_MS) return;
+  try {
+    // purgeExpiredWorkspaces logs how many it deleted; the tick's line adds only a failure.
+    await s.deps.purgeWorkspaces(now);
+    s.lastPurge = now.getTime();
+  } catch (err) {
+    counts.purgeFailed = errorCode(err);
   }
 }
 
@@ -409,6 +456,7 @@ function summary(c: TickCounts): string | null {
   if (c.sweepFailed.length) parts.push(`sweep failed ${c.sweepFailed.length} (${codes(c.sweepFailed)})`);
   if (c.ledgerDeleted) parts.push(`deleted ${c.ledgerDeleted} old ledger rows`);
   if (c.cleanupFailed) parts.push(`ledger clean-up failed (${c.cleanupFailed})`);
+  if (c.purgeFailed) parts.push(`demo workspace purge failed (${c.purgeFailed})`);
   if (c.error) parts.push(`tick failed (${c.error})`);
   return parts.length ? `inbox: scheduler: ${parts.join(", ")}` : null;
 }

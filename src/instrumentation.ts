@@ -12,8 +12,9 @@
  * started without waiting for any work, since the server takes no requests before register()
  * returns, and only once per process. Its no-response sweep and 90-day ledger clean-up run in
  * every configuration; its timed Gmail syncs only with INBOX_SCHEDULER on and Gmail set up (or
- * MAIL_SOURCE=fixture). It also stops the inbox syncs on SIGTERM and SIGINT, beside Next.js's own
- * shutdown.
+ * MAIL_SOURCE=fixture), never in the public demo (DEMO_MODE=on), where it purges the expired
+ * workspaces instead, every 5 minutes. It also stops the inbox syncs on SIGTERM and SIGINT,
+ * beside Next.js's own shutdown.
  */
 export async function register() {
   // Inside this branch only: the Edge build drops it, so it never bundles server code.

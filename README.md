@@ -129,6 +129,11 @@ DEMO_MODE=on
 - `APP_URL` is needed in development too. In production it must be https, except an http origin
   on `127.0.0.1`, `localhost` or `[::1]` (a local test run of the production build).
 
+In the demo, `/login` and every signed-out page lead to the entry page `/login/demo`, and every
+response tells search engines not to index it. Expired workspaces are deleted every 5 minutes.
+`npm run smoke -- http://127.0.0.1:<port>` checks a running demo too: it finds the demo by
+`/login`, then enters a workspace, reads `/api/me` and leaves again.
+
 On the real app, set `DEMO_URL` to the demo's origin, for example `https://demo.example.com`, and
 its sign-in page shows a "Try the demo" link.
 

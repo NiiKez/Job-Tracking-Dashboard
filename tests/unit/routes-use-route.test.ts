@@ -20,7 +20,10 @@ const METHODS = new Set(["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIO
 // database (docs/plan/5-public-demo.md, "Step 8"). The Gmail connect flow's two
 // GET routes are browser navigations that must answer a redirect, not a 401: they check the
 // session with authenticate() (the same checks as route()), then the state cookie and PKCE
-// (src/lib/server/inbox/oauth/connect.ts, tests/handlers/inbox-connect.test.ts).
+// (src/lib/server/inbox/oauth/connect.ts, tests/handlers/inbox-connect.test.ts). /auth/demo is
+// the public demo's "Try the demo": a plain form post from a signed-out visitor (no JSON, no
+// session yet) that answers with redirects; it checks Origin itself, and answers 404 outside demo
+// mode (docs/plan/5-public-demo.md, "Step 6"; tests/handlers/auth-demo.test.ts).
 const HEALTH = "api/health/route.ts";
 const AUTH_OPTIONS = "auth/options/route.ts";
 const NOT_WRAPPED = [
@@ -29,6 +32,7 @@ const NOT_WRAPPED = [
   "auth/google/callback/route.ts",
   "auth/signout/route.ts",
   AUTH_OPTIONS,
+  "auth/demo/route.ts",
   "api/inbox/connect/route.ts",
   "api/inbox/callback/route.ts",
 ];

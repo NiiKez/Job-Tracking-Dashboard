@@ -1,9 +1,9 @@
 // npm run db:seed [-- someone@example.com]
 //
-// Fills a development database with the demo jobs and emails (db/seed/fixtures.ts) for one
-// account: the named one, or else the first user that signed in. That user's jobs and emails
-// are replaced; keyword rules and settings stay. Sign in to the app once first, because the
-// data belongs to an account.
+// Fills a development database with the demo jobs and emails (src/lib/server/demo/fixtures.ts)
+// for one account: the named one, or else the first user that signed in. That user's jobs and
+// emails are replaced; keyword rules and settings stay. Sign in to the app once first, because
+// the data belongs to an account.
 //
 // DATABASE_URL comes from the environment, else from .env.local. Only a database whose name ends
 // in _dev or _test is seeded (see db/seed/seed.ts). Nothing printed here contains the connection

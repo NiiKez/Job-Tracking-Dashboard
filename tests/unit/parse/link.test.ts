@@ -66,6 +66,50 @@ describe("pasted text", () => {
   });
 });
 
+describe("a link that is not opened (fetchLink: false)", () => {
+  it("takes the fields from the link's own text, without a request, a log line or the budget", async () => {
+    // A page is there to be read: the option alone keeps the parser from asking for it.
+    serve(fixture("jsonld-top-level.html")).persist();
+    const dispatch = vi.spyOn(mock, "dispatch");
+    const parse = parser({ limit: 1 });
+
+    expect(await parse(LINK, { fetchLink: false, rateLimitKey: "u" })).toEqual({
+      title: "Product Designer",
+      company: "Example",
+      location: "Berlin",
+      url: LINK,
+      description: "",
+      missing: ["description"],
+    });
+    expect(await parse(`${ORIGIN}/r0`, { fetchLink: false, rateLimitKey: "u" })).toEqual(
+      parseWithHeuristics(`${ORIGIN}/r0`),
+    );
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(log).not.toHaveBeenCalled();
+
+    // The one fetch the budget allows is still there.
+    expect((await parse(LINK, { rateLimitKey: "u" })).title).toBe("Senior Backend Engineer");
+    expect(dispatch).toHaveBeenCalledTimes(1);
+  });
+
+  it("reads job-board links as the fallback does", async () => {
+    const dispatch = vi.spyOn(mock, "dispatch");
+    const link = "https://boards.greenhouse.io/northwind-labs/jobs/4821930-senior-frontend-engineer";
+    expect(await parser()(link, { fetchLink: false })).toMatchObject({
+      company: "Northwind Labs",
+      title: "Senior Frontend Engineer",
+      url: link,
+    });
+    expect(await parser()(link, { fetchLink: false })).toEqual(parseWithHeuristics(link));
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it("changes nothing for pasted text", async () => {
+    const text = `Product Designer at Fernwood Labs\n${LINK}`;
+    expect(await parser()(text, { fetchLink: false })).toEqual(parseWithHeuristics(text));
+  });
+});
+
 describe("a link that is read", () => {
   it("takes the fields from the page", async () => {
     serve(fixture("jsonld-top-level.html"));

@@ -117,6 +117,23 @@ describeDb("parse service", () => {
     expect((await parseInput(getDb(), other, `${ORIGIN}/careers/7`)).duplicateOf).toBeNull();
   });
 
+  it("with fetchLink: false, never opens the link, and still finds its duplicate", async () => {
+    const user = await createUser();
+    serve("/careers/product-designer-4711", fixture("jsonld-top-level.html")).persist();
+    const dispatch = vi.spyOn(mock, "dispatch");
+    const link = `${ORIGIN}/careers/product-designer-4711`;
+
+    const fresh = await parseInput(getDb(), user, link, { fetchLink: false });
+    expect(fresh).toEqual({ ...parseWithHeuristics(link), duplicateOf: null });
+    expect(fresh).toMatchObject({ title: "Product Designer", company: "Example", url: link });
+
+    const job = await makeJob(user, { url: link, company: "Parcelwerk", title: "Frontend Engineer" });
+    const again = await parseInput(getDb(), user, `${link}?utm_source=newsletter`, { fetchLink: false });
+    expect(again.duplicateOf?.id).toBe(job.id);
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
   it("counts link fetches per user", async () => {
     const [ada, ben] = [await createUser(), await createUser()];
     serve("/careers/7", fixture("jsonld-top-level.html")).persist();

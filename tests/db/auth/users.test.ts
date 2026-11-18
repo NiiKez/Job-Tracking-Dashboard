@@ -3,7 +3,7 @@ import { DEFAULT_RULES, DEFAULT_USER_SETTINGS } from "@/lib/domain/defaults";
 import { normalize } from "@/lib/domain/normalize";
 import { getDb, withTx } from "@/lib/server/db/client";
 import { ConflictError } from "@/lib/server/errors";
-import { getUser, upsertUserOnSignIn, type SignInProfile } from "@/lib/server/repo/users";
+import { getUser, insertDefaults, upsertUserOnSignIn, type SignInProfile } from "@/lib/server/repo/users";
 import { describeDb, testSql } from "../../helpers/test-db";
 
 const OWNER: SignInProfile = {
@@ -117,6 +117,33 @@ describeDb("users repository", () => {
     expect(perSub).toHaveLength(50);
     expect(perSub.every((r) => r.n === 1)).toBe(true);
     expect(await counts()).toEqual({ users: 50, settings: 50, rules: 50 * DEFAULT_RULES.length });
+  });
+
+  it("insertDefaults gives a user made without sign-in what a first sign-in gives", async () => {
+    const { user: signedIn } = await signIn(OWNER);
+    const made = await withTx(async (tx) => {
+      const [row] = await tx<{ id: string }[]>`
+        INSERT INTO users (google_sub, email, name) VALUES ('made-1', 'made@example.com', 'Made') RETURNING id`;
+      await insertDefaults(tx, row.id);
+      return row.id;
+    });
+    const sql = testSql();
+    const defaults = async (userId: string) => {
+      const [settings] = await sql`
+        SELECT no_response_days, create_from_confirmation, review_uncertain, languages, inbox_interval_minutes
+        FROM user_settings WHERE user_id = ${userId}`;
+      const rules = await sql`
+        SELECT status, phrase, phrase_norm, language FROM keyword_rules WHERE user_id = ${userId}
+        ORDER BY status, phrase, language`;
+      return { settings, rules: [...rules] };
+    };
+    const expected = await defaults(signedIn.id);
+    expect(expected.rules).toHaveLength(DEFAULT_RULES.length);
+    expect(await defaults(made)).toEqual(expected);
+
+    // Once per user: a second call fails, and its transaction leaves nothing behind.
+    await expect(withTx((tx) => insertDefaults(tx, made))).rejects.toThrow(/user_settings_pkey/);
+    expect(await counts()).toEqual({ users: 2, settings: 2, rules: 2 * DEFAULT_RULES.length });
   });
 
   it("getUser returns the user, or null for an unknown id", async () => {

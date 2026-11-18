@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { NextRequest } from "next/server";
-import { afterEach, beforeEach, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   createSession,
   endSession,
@@ -148,6 +148,98 @@ describeDb("sessions", () => {
       UPDATE sessions SET last_seen_at = now() - interval '31 days', expires_at = now() - interval '1 day'`;
     expect(await touchSession(getDb(), session.id, 30 * DAY, DAY)).toBeNull();
     expect(await lookupSession(getDb(), requestWith(token))).toEqual({ status: "invalid" });
+  });
+
+  it("returns when the row expires: 30 days by default", async () => {
+    const user = await newUser();
+    const { token, expiresAt } = await createSession(getDb(), user.id);
+    const [row] = await testSql()<{ expires_at: Date }[]>`
+      SELECT expires_at FROM sessions WHERE token_hash = ${hashSessionToken(token)!}`;
+    expect(expiresAt).toEqual(row.expires_at);
+    expect((await timing(token)).expires_in).toBeGreaterThan(30 * DAY - 60);
+  });
+
+  describe("a fixed lifetime", () => {
+    /** The session's times relative to its created_at, in seconds. */
+    async function span(token: string) {
+      const [row] = await testSql()<{ lifetime: number; seen: number }[]>`
+        SELECT
+          extract(epoch FROM expires_at - created_at)::float8 AS lifetime,
+          extract(epoch FROM last_seen_at - created_at)::float8 AS seen
+        FROM sessions WHERE token_hash = ${hashSessionToken(token)!}`;
+      return row;
+    }
+
+    /** Moves the session back in time as a whole: as if it had been created `seconds` ago. */
+    async function age(token: string, seconds: number) {
+      await testSql()`
+        UPDATE sessions SET
+          created_at = created_at - make_interval(secs => ${seconds}),
+          last_seen_at = last_seen_at - make_interval(secs => ${seconds}),
+          expires_at = expires_at - make_interval(secs => ${seconds})
+        WHERE token_hash = ${hashSessionToken(token)!}`;
+    }
+
+    it("the row and the cookie end together", async () => {
+      const user = await newUser();
+      const { token, setCookie, expiresAt } = await createSession(getDb(), user.id, { fixedLifetimeSeconds: DAY });
+      expect(setCookie).toBe(`__Host-jt_session=${token}; Path=/; Max-Age=${DAY}; Secure; HttpOnly; SameSite=Lax`);
+      expect(await span(token)).toEqual({ lifetime: DAY, seen: 0 });
+      const t = await timing(token);
+      expect(t.expires_in).toBeGreaterThan(DAY - 60);
+      expect(t.expires_in).toBeLessThanOrEqual(DAY);
+      const [row] = await testSql()<{ expires_at: Date }[]>`SELECT expires_at FROM sessions`;
+      expect(expiresAt).toEqual(row.expires_at);
+
+      const short = await createSession(getDb(), user.id, { fixedLifetimeSeconds: 90 });
+      expect(short.setCookie).toContain("; Max-Age=90; ");
+      expect((await span(short.token)).lifetime).toBe(90);
+    });
+
+    it("made in the user's transaction, it ends exactly at the user's created_at + the lifetime", async () => {
+      const { user, session } = await withTx(async (tx) => {
+        const { user } = await upsertUserOnSignIn(tx, { sub: "sub-tx", email: "tx@example.com", name: "Tx", picture: null });
+        return { user, session: await createSession(tx, user.id, { fixedLifetimeSeconds: DAY }) };
+      });
+      const [row] = await testSql()<{ exact: boolean }[]>`
+        SELECT s.expires_at = u.created_at + make_interval(secs => ${DAY}) AS exact
+        FROM sessions s JOIN users u ON u.id = s.user_id
+        WHERE u.id = ${user.id} AND s.token_hash = ${hashSessionToken(session.token)!}`;
+      expect(row.exact).toBe(true);
+    });
+
+    it("is never extended by use, up to its end, and is gone after it", async () => {
+      const user = await newUser();
+      const { token } = await createSession(getDb(), user.id, { fixedLifetimeSeconds: DAY });
+      const db = getDb();
+
+      // A minute before the end: still valid, not due, nothing extended.
+      await age(token, DAY - 60);
+      const late = await valid(token);
+      expect(late.session.needsTouch).toBe(false);
+      expect(await extendSession(db, late)).toBeNull();
+      expect(await touchSession(db, late.session.id, 30 * DAY, DAY)).toBeNull();
+      expect(await span(token)).toEqual({ lifetime: DAY, seen: 0 });
+      const t = await timing(token);
+      expect(t.expires_in).toBeGreaterThan(0);
+      expect(t.expires_in).toBeLessThanOrEqual(60);
+
+      // The moment it would be due for an extension, it has already expired.
+      await age(token, 61);
+      expect(await lookupSession(db, requestWith(token))).toEqual({ status: "invalid" });
+      expect(await touchSession(db, late.session.id, 30 * DAY, DAY)).toBeNull();
+      expect(await span(token)).toEqual({ lifetime: DAY, seen: 0 });
+    });
+
+    it.each([0, -1, 1.5, DAY + 1, 30 * DAY, Number.NaN, Number.POSITIVE_INFINITY])(
+      "refuses %s seconds, and stores nothing",
+      async (seconds) => {
+        const user = await newUser();
+        await expect(createSession(getDb(), user.id, { fixedLifetimeSeconds: seconds })).rejects.toThrow(RangeError);
+        const [{ count }] = await testSql()<{ count: number }[]>`SELECT count(*)::int AS count FROM sessions`;
+        expect(count).toBe(0);
+      },
+    );
   });
 
   it("endSession deletes the session the cookie names, and only that one", async () => {

@@ -20,15 +20,19 @@ import {
  * path could plant over http) is ignored.
  *
  * Lifetime: 30 days, extended to 30 days from now whenever a request comes more than a day after
- * the last extension (the cookie is re-sent then).
+ * the last extension (the cookie is re-sent then). Or a fixed lifetime of at most a day, chosen
+ * when the session is created and never extended (createSession's `fixedLifetimeSeconds`; the
+ * public demo's workspaces).
  *
  * API
  *   newSessionToken()                  { token, tokenHash }
  *   hashSessionToken(token)            the 32-byte hash, or null for a malformed token
  *   sessionCookieName()                the name for the current APP_URL
  *   readSessionToken(req)              the cookie's value, or null (not checked against the db)
- *   sessionCookie(token)               Set-Cookie value; clearedSessionCookie() ends it
- *   createSession(db, userId)          inserts a session, returns { token, setCookie }
+ *   sessionCookie(token, maxAge?)      Set-Cookie value (30 days, or `maxAge` seconds);
+ *                                      clearedSessionCookie() ends it
+ *   createSession(db, userId, opts?)   inserts a session, returns { token, setCookie, expiresAt };
+ *                                      `fixedLifetimeSeconds` for a session that is not extended
  *   lookupSession(req)                 "none" (no cookie), "invalid" (malformed, unknown,
  *                                      expired) or "valid" with the session and its user
  *   extendSession(found)               sliding expiry; a Set-Cookie value when it extended
@@ -42,7 +46,11 @@ import {
 export const SESSION_COOKIE_SECURE = "__Host-jt_session";
 export const SESSION_COOKIE_PLAIN = "jt_session";
 export const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
-/** A session is extended (and its cookie re-sent) at most once per this interval. */
+/**
+ * A session is extended (and its cookie re-sent) at most once per this interval. Also the longest
+ * fixed lifetime createSession accepts: see there why that keeps such a session from being
+ * extended.
+ */
 export const SESSION_TOUCH_AFTER_SECONDS = 24 * 60 * 60;
 
 const TOKEN_BYTES = 32;
@@ -86,9 +94,12 @@ function sessionCookieAttributes(maxAge: number): CookieAttributes {
   return { path: "/", maxAge, secure: isSecureApp(), httpOnly: true, sameSite: "Lax" };
 }
 
-/** Set-Cookie for a session token (30 days). */
-export function sessionCookie(token: string): string {
-  return serializeCookie(sessionCookieName(), token, sessionCookieAttributes(SESSION_TTL_SECONDS));
+/**
+ * Set-Cookie for a session token: Max-Age 30 days, or `maxAgeSeconds` (a fixed-lifetime
+ * session's, so the cookie ends with its row).
+ */
+export function sessionCookie(token: string, maxAgeSeconds: number = SESSION_TTL_SECONDS): string {
+  return serializeCookie(sessionCookieName(), token, sessionCookieAttributes(maxAgeSeconds));
 }
 
 /** Set-Cookie that deletes the session cookie (same name, path and flags, so browsers accept it). */
@@ -126,11 +137,46 @@ function sha256(data: Buffer): Buffer {
 
 /* ------------------------------------------------------------- lifecycle */
 
-/** Inserts a session for the user; the token goes into the cookie, only its hash into the table. */
-export async function createSession(db: Db, userId: string): Promise<{ token: string; setCookie: string }> {
+export interface CreateSessionOptions {
+  /**
+   * A fixed lifetime in whole seconds, 1 to SESSION_TOUCH_AFTER_SECONDS (a day), instead of the
+   * sliding 30 days. The row expires that long after the database's now() (inside a transaction:
+   * its start, so a user created in the same transaction gets `created_at + lifetime` exactly),
+   * the cookie gets the same Max-Age, and the session is never extended.
+   */
+  fixedLifetimeSeconds?: number;
+}
+
+/**
+ * Inserts a session for the user; the token goes into the cookie, only its hash into the table.
+ * Returns the token, its Set-Cookie and when the row expires.
+ *
+ * Why a fixed lifetime is never extended: a session is extended only once its last_seen_at is
+ * more than SESSION_TOUCH_AFTER_SECONDS old (findSessionByTokenHash's needs_touch, and the same
+ * condition again in touchSession), and only while it has not expired (both queries). last_seen_at
+ * starts at the same now() as expires_at and only an extension moves it. With a lifetime of at
+ * most SESSION_TOUCH_AFTER_SECONDS, the session has expired before it could be due, so
+ * extendSession never touches it. Hence the upper bound, checked here (RangeError, nothing
+ * inserted) along with the rest.
+ */
+export async function createSession(
+  db: Db,
+  userId: string,
+  opts: CreateSessionOptions = {},
+): Promise<{ token: string; setCookie: string; expiresAt: Date }> {
+  const fixed = opts.fixedLifetimeSeconds;
+  if (
+    fixed !== undefined &&
+    !(Number.isSafeInteger(fixed) && fixed > 0 && fixed <= SESSION_TOUCH_AFTER_SECONDS)
+  ) {
+    throw new RangeError(
+      `createSession: fixedLifetimeSeconds must be a whole number from 1 to ${SESSION_TOUCH_AFTER_SECONDS}`,
+    );
+  }
+  const ttlSeconds = fixed ?? SESSION_TTL_SECONDS;
   const { token, tokenHash } = newSessionToken();
-  await insertSession(db, userId, tokenHash, SESSION_TTL_SECONDS);
-  return { token, setCookie: sessionCookie(token) };
+  const { expiresAt } = await insertSession(db, userId, tokenHash, ttlSeconds);
+  return { token, setCookie: sessionCookie(token, ttlSeconds), expiresAt };
 }
 
 export type SessionLookup =

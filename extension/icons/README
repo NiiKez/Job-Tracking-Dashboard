@@ -23,3 +23,16 @@ changing an SVG, from the repo root, render each at its sizes with a transparent
       }
     }
     await browser.close();'
+
+The web app's icons are the same mark, in src/app:
+
+  icon.svg          icon-small.svg with a dark-mode style: in a dark browser the tile turns light
+                    (#ececec) and the briefcase dark, like the app's primary colour. Edit it by hand.
+  favicon.ico       16 and 32 px from icon-small.svg, 48 px from icon.svg, for browsers without
+                    SVG favicons (Safari). Always the dark tile.
+  apple-icon.png    180 px from icon.svg with square corners (iOS rounds them itself and shows
+                    transparency as black)
+
+To render them after changing an SVG: the same Chromium screenshots as above (omitBackground
+false for apple-icon.png), then pack the three PNGs into favicon.ico as PNG entries (a 6-byte
+header, one 16-byte directory entry per image, the PNGs after it).

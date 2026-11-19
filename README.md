@@ -1,5 +1,8 @@
 # Job Tracker
 
+**Live demo: https://job-tracking-demo.prodstack.live**. Press "Try the demo" to get your own
+workspace of invented jobs and emails, with no sign-in and no Gmail. It is deleted after 24 hours.
+
 Job Tracker keeps every job you are interested in or have applied to in one list, and shows
 where each application stands: saved, applied, interview, offer, rejected or no response.
 

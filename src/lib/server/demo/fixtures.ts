@@ -8,7 +8,10 @@ import type { ChangeSource, Email, EmailOutcome, Job, ReviewReason, Status } fro
  * "Check inbox now" is now Gmail-shaped fixtures in fixtures/mail/.
  *
  *   buildSeed(now)  the jobs (with their history) and emails as the API returns them, with
- *                   fixture ids ("job_0001", "eml_0012") and times relative to `now`
+ *                   fixture ids ("job_0001", "eml_0012") and times relative to `now`. Today's
+ *                   items sit at fixed clock times up to 10:00; earlier in the day the whole
+ *                   past moves back one day (as the fixture mail does), so nothing that has
+ *                   happened is dated in the future and the gaps between items stay as they are
  *   EMAILS          the emails by key, before they are dated
  *
  * Plain data with type imports only: no database, no I/O, nothing done at import time but
@@ -903,6 +906,24 @@ export interface SeedData {
 }
 
 export function buildSeed(now = Date.now()): SeedData {
+  const seed = buildSeedAt(now, now);
+  return happensAfter(seed, now) ? buildSeedAt(now - DAY, now) : seed;
+}
+
+/** True when an email, a job's creation or a status change of `seed` is later than `now`. */
+function happensAfter({ jobs, emails }: SeedData, now: number): boolean {
+  const times = [
+    ...emails.map((e) => e.receivedAt),
+    ...jobs.flatMap((j) => [j.createdAt, ...j.history.map((h) => h.at)]),
+  ];
+  return times.some((t) => Date.parse(t) > now);
+}
+
+/**
+ * The seed with what has happened dated from `past`, and what is still to come (an interview, an
+ * offer's deadline) from `now`.
+ */
+function buildSeedAt(past: number, now: number): SeedData {
   let n = 0;
   const id = (p: string) => `${p}_${(++n).toString(36).padStart(4, "0")}`;
   const jobIds = new Map<string, string>();
@@ -916,7 +937,7 @@ export function buildSeed(now = Date.now()): SeedData {
     fromAddress: e.fromAddress,
     subject: e.subject,
     body: e.body,
-    receivedAt: at(e.daysAgo, e.hour ?? 10, (e.key.length * 7) % 60, now),
+    receivedAt: at(e.daysAgo, e.hour ?? 10, (e.key.length * 7) % 60, past),
     language: e.language,
     outcome: e.outcome,
     jobId: e.job ? jobIds.get(e.job)! : null,
@@ -938,7 +959,7 @@ export function buildSeed(now = Date.now()): SeedData {
         id: `${jobId}_ev${i}`,
         from: prev,
         to: ev.to,
-        at: at(ev.daysAgo, ev.source === "email" ? 9 + (i % 8) : 10 + i, 15 * i, now),
+        at: at(ev.daysAgo, ev.source === "email" ? 9 + (i % 8) : 10 + i, 15 * i, past),
         source: ev.source,
         emailId: ev.email ? emailIds.get(ev.email) : undefined,
         note: ev.note,
@@ -966,7 +987,7 @@ export function buildSeed(now = Date.now()): SeedData {
       statusSource: last.source,
       statusLocked: j.locked ?? false,
       captureMethod: j.captureMethod,
-      createdAt: at(first.daysAgo, 9, 30, now),
+      createdAt: at(first.daysAgo, 9, 30, past),
       appliedAt: appliedEvent?.at ?? null,
       updatedAt: last.at,
       lastActivityAt: activity[activity.length - 1],

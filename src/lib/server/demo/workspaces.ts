@@ -87,6 +87,8 @@ class DemoFull extends Error {
  * Creates a workspace: purges the expired ones first (a statement of its own, kept whatever
  * follows), then in ONE transaction:
  *
+ *   0. sets lock_timeout to 5 seconds (SET LOCAL), so no step waits longer than that for any
+ *      one lock (see below);
  *   1. takes the creation lock (an advisory lock until the transaction ends), so creations in
  *      any process take turns and the count below cannot change under it;
  *   2. deletes `replaceUserId`'s workspace, if that is a demo user ("Start over");
@@ -99,17 +101,24 @@ class DemoFull extends Error {
  *      session of WORKSPACE_LIFETIME_SECONDS (createSession), which never gets extended.
  *
  * Either all of it is there or none of it. `db` is the pool (a transaction of its own), or a
- * transaction (a savepoint in it; the lock then lasts until the caller's transaction ends).
+ * transaction (a savepoint in it; the creation lock then lasts until the caller's transaction
+ * ends, and so does the lock_timeout, for the caller's later statements too, unless the
+ * savepoint is rolled back).
  *
  * A request of a replaced or evicted workspace that is writing at that moment makes the DELETE
  * wait for it. In a rare order of locks PostgreSQL finds a deadlock instead and fails one of the
- * two; a retry works.
+ * two; a retry works. The DELETE waits while holding the creation lock and, in POST /auth/demo,
+ * the entry gate, so a transaction stuck on that workspace's rows would hold up every entry:
+ * after 5 seconds the creation fails instead (55P03, thrown like any database error; the route
+ * answers /login/demo?error=failed) and everything rolls back. A creation waiting for another
+ * process's creation lock gives up after 5 seconds as well.
  */
 export async function createWorkspace(db: Db, opts: CreateWorkspaceOptions = {}): Promise<CreateWorkspaceResult> {
   const started = performance.now();
   await purgeExpiredWorkspaces(db, opts.now);
   try {
     const created = await inTransaction(db, async (tx) => {
+      await tx`SET LOCAL lock_timeout = '5s'`;
       await tx`SELECT pg_advisory_xact_lock(hashtextextended(${CREATE_LOCK}, 0))`;
       if (opts.replaceUserId) await deleteWorkspace(tx, opts.replaceUserId);
       let live = await countWorkspaces(tx, opts.now);

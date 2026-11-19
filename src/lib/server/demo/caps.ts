@@ -12,6 +12,8 @@ import { ConflictError } from "@/lib/server/errors";
  *   DEMO_CAPS                                    the numbers, in one place
  *   checkDemoDescription(description)            ConflictError when a job description is longer
  *                                                than the cap (characters as the column counts them)
+ *   checkDemoUrl(url)                            ConflictError when a job's link is longer than the
+ *                                                cap (null, undefined and "" pass)
  *   checkDemoCap(db, userId, kind, adding = 1)   ConflictError when the user's rows of `kind`
  *                                                ("jobs", "statusEvents", "keywordRules") plus
  *                                                `adding` would be more than the cap
@@ -23,6 +25,11 @@ import { ConflictError } from "@/lib/server/errors";
  *                  by "Check again", or created from the review list
  *   description    createJob (a new job), upsertJob (a duplicate keeps the longer description, so
  *                  the input is checked) and updateJob (an edited description)
+ *   link           createJob, upsertJob (a duplicate takes the new link) and updateJob (an edited
+ *                  link). Nothing else limits a link's length: the schema has no maximum (the
+ *                  real app's edit form sends the stored link back, so one would lock old jobs
+ *                  out of editing) and the column only refuses "". Without this cap one
+ *                  workspace could hold 60 links of about 250 kB each (the request body's limit).
  *   status events  createJob (the event that creates the job) and applyStatusChange (every later
  *                  change: manual, email, review and the no-response sweep). A change to the
  *                  status the job already has records no event and is not checked.
@@ -50,6 +57,8 @@ export const DEMO_CAPS = Object.freeze({
   jobs: 60,
   /** Characters (code points) per job description. */
   descriptionChars: 20_000,
+  /** Characters (code points) per job link: as many as the extension sends (MAX_URL in schemas.ts). */
+  urlChars: 2_048,
   /** job_status_events rows per workspace. */
   statusEvents: 500,
   /** Keyword rules per workspace. */
@@ -71,6 +80,7 @@ const CAP_MESSAGES: Record<DemoCountedKind, string> = {
 };
 
 const DESCRIPTION_MESSAGE = `The demo allows at most ${amount(DEMO_CAPS.descriptionChars)} characters in a job description. Shorten it and try again.`;
+const URL_MESSAGE = `The demo allows links of at most ${amount(DEMO_CAPS.urlChars)} characters. Shorten it and try again.`;
 
 /** The user's rows of one kind. Fixed SQL per kind: every table's indexes start with user_id. */
 async function countRows(db: Db, userId: string, kind: DemoCountedKind): Promise<number> {
@@ -101,7 +111,21 @@ export async function checkDemoCap(db: Db, userId: string, kind: DemoCountedKind
  */
 export function checkDemoDescription(description: string): void {
   if (!getEnv().demoMode) return;
+  if (longerThan(description, DEMO_CAPS.descriptionChars)) throw new ConflictError(DESCRIPTION_MESSAGE);
+}
+
+/**
+ * In demo mode: ConflictError when the link has more than DEMO_CAPS.urlChars characters (code
+ * points, as for the description). No link (null, undefined, "") passes. Outside demo mode:
+ * nothing.
+ */
+export function checkDemoUrl(url: string | null | undefined): void {
+  if (!getEnv().demoMode || !url) return;
+  if (longerThan(url, DEMO_CAPS.urlChars)) throw new ConflictError(URL_MESSAGE);
+}
+
+/** More than `max` characters, counted as code points (as PostgreSQL's char_length counts them). */
+function longerThan(text: string, max: number): boolean {
   // UTF-16 units are never fewer than code points: only a long string needs counting.
-  if (description.length <= DEMO_CAPS.descriptionChars) return;
-  if (Array.from(description).length > DEMO_CAPS.descriptionChars) throw new ConflictError(DESCRIPTION_MESSAGE);
+  return text.length > max && Array.from(text).length > max;
 }

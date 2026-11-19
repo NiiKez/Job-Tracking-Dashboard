@@ -3,7 +3,7 @@ import { jobKeys, normalize } from "@/lib/domain/normalize";
 import { lockAfterManualChange } from "@/lib/domain/status-change";
 import { getDb, isUniqueViolation, withTx, type Db, type Tx } from "@/lib/server/db/client";
 import { toEmail, toJob, toStatusEvent, type JobRow } from "@/lib/server/db/rows";
-import { checkDemoCap, checkDemoDescription } from "@/lib/server/demo/caps";
+import { checkDemoCap, checkDemoDescription, checkDemoUrl } from "@/lib/server/demo/caps";
 import { BadRequestError, ConflictError, NotFoundError } from "@/lib/server/errors";
 import { countEmailsForJobs, getEmailRow, listEmailRows, setEmailLink } from "@/lib/server/repo/emails";
 import { insertEvent, listEventsForJobs } from "@/lib/server/repo/events";
@@ -75,8 +75,9 @@ import type {
  * insertEmail, the fourth write-path function, is in services/emails.ts.
  *
  * The public demo's per-workspace caps (demo/caps.ts; demo mode only, a 409 there) are checked
- * where every path passes: createJob (the job count, its description and its creating event),
- * applyStatusChange (a recorded change), and upsertJob and updateJob (a description they write).
+ * where every path passes: createJob (the job count, its description, its link and its creating
+ * event), applyStatusChange (a recorded change), and upsertJob and updateJob (a description or a
+ * link they write).
  */
 
 /* ------------------------------------------------------------------- reads */
@@ -140,8 +141,10 @@ async function assembleJobs(db: Db, userId: string, rows: JobRow[]): Promise<Job
  * "saved" to "applied" only; it never moves back from a later stage.
  */
 export async function upsertJob(userId: string, input: JobInput): Promise<UpsertResult> {
-  // A duplicate keeps the longer description, so the input is what may be written.
+  // A duplicate keeps the longer description and takes the new link, so the input is what may
+  // be written.
   checkDemoDescription(input.description);
+  checkDemoUrl(input.url);
   return withTx(async (tx) => {
     await lockUserJobs(tx, userId);
     const existing = await findDuplicateJobRow(tx, userId, jobKeys(input), { forUpdate: true });
@@ -202,6 +205,7 @@ export type JobPatch = Partial<
  */
 export async function updateJob(userId: string, jobId: string, patch: JobPatch): Promise<Job> {
   if (patch.description !== undefined) checkDemoDescription(patch.description);
+  checkDemoUrl(patch.url);
   return withTx(async (tx) => {
     // A link edit takes the per-user lock (before the row lock, as upsertJob does), so an
     // upsert of the same link waits and then finds this job, instead of inserting a second one
@@ -283,6 +287,7 @@ interface NewJob {
  */
 async function createJob(tx: Tx, userId: string, job: NewJob): Promise<JobRow> {
   checkDemoDescription(job.description);
+  checkDemoUrl(job.url);
   await checkDemoCap(tx, userId, "jobs");
   await checkDemoCap(tx, userId, "statusEvents");
   const at = job.at ?? null;

@@ -209,6 +209,29 @@ describeDb("demo workspaces", () => {
     expect([...(await allUsers()).keys()]).toEqual([old.userId]);
   });
 
+  it("waits at most 5 seconds for any one lock, in its own transaction and in a caller's", async () => {
+    const sql = testSql();
+    // Seen from inside the transaction: its last step (the session) reports the setting.
+    await sql.unsafe(`
+      CREATE FUNCTION test_report_lock_timeout() RETURNS trigger LANGUAGE plpgsql AS $$
+      BEGIN RAISE EXCEPTION 'lock_timeout %', current_setting('lock_timeout'); END $$`);
+    await sql.unsafe(`
+      CREATE TRIGGER test_report_lock_timeout BEFORE INSERT ON sessions
+      FOR EACH ROW EXECUTE FUNCTION test_report_lock_timeout()`);
+    try {
+      await expect(createWorkspace(getDb())).rejects.toThrow("lock_timeout 5s");
+    } finally {
+      await sql.unsafe(`DROP TRIGGER test_report_lock_timeout ON sessions`);
+      await sql.unsafe(`DROP FUNCTION test_report_lock_timeout()`);
+    }
+    // In a savepoint of the caller's transaction, SET LOCAL lasts until that transaction ends.
+    await sql.begin(async (tx) => {
+      expect(await createWorkspace(tx)).toMatchObject({ ok: true });
+      const [row] = await tx<{ setting: string }[]>`SELECT current_setting('lock_timeout') AS setting`;
+      expect(row.setting).toBe("5s");
+    });
+  });
+
   it("starting over with a user that is not a demo user leaves that user alone", async () => {
     const real = await createUser({ rules: true });
     const before = await rowsOf(real);

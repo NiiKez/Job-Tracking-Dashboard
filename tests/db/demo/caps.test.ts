@@ -62,6 +62,12 @@ async function fillRules(userId: string, total: number): Promise<void> {
     FROM generate_series(1, ${total - n}::int) AS i`;
 }
 
+/** An http link of `chars` characters (code points); `fill` is the repeated tail. */
+function link(chars: number, fill = "a"): string {
+  const base = "https://example.com/";
+  return base + fill.repeat(chars - base.length);
+}
+
 async function count(table: "jobs" | "job_status_events" | "keyword_rules", userId: string): Promise<number> {
   const [{ n }] = await testSql()<{ n: number }[]>`
     SELECT count(*)::int AS n FROM ${testSql()(table)} WHERE user_id = ${userId}`;
@@ -73,12 +79,19 @@ const EVENTS_MESSAGE = "The demo allows at most 500 status changes. Delete a job
 const RULES_MESSAGE = "The demo allows at most 200 keyword rules. Delete one or start over.";
 const DESCRIPTION_MESSAGE =
   "The demo allows at most 20,000 characters in a job description. Shorten it and try again.";
+const URL_MESSAGE = "The demo allows links of at most 2,048 characters. Shorten it and try again.";
 
 describeDb("the demo's per-workspace caps", () => {
   afterEach(() => restoreDemoEnv());
 
   it("are the plan's numbers", () => {
-    expect(DEMO_CAPS).toEqual({ jobs: 60, descriptionChars: 20_000, statusEvents: 500, keywordRules: 200 });
+    expect(DEMO_CAPS).toEqual({
+      jobs: 60,
+      descriptionChars: 20_000,
+      urlChars: 2_048,
+      statusEvents: 500,
+      keywordRules: 200,
+    });
   });
 
   describe("in demo mode", () => {
@@ -150,6 +163,38 @@ describeDb("the demo's per-workspace caps", () => {
       const [row] = await testSql()<{ description: string }[]>`SELECT description FROM jobs WHERE id = ${job.id}`;
       expect(row.description).toBe("short");
       // Edits that leave the description alone are not checked.
+      await updateJob(user, job.id, { title: "Renamed" });
+    });
+
+    /* ------------------------------------------------------------- link */
+
+    it("takes a link of 2,048 characters, counted as code points, and no link at all", async () => {
+      const user = await createUser();
+      expect((await upsertJob(user, { ...JOB, url: link(DEMO_CAPS.urlChars) })).job.url).toHaveLength(
+        DEMO_CAPS.urlChars,
+      );
+      // 2,048 characters, some outside the BMP: more UTF-16 units, still 2,048 characters.
+      await upsertJob(user, { ...JOB, title: "Emoji", url: link(DEMO_CAPS.urlChars, "\u{1F680}") });
+      const job = await makeJob(user, { ...JOB, title: "No link" });
+      await updateJob(user, job.id, { url: "" });
+      await updateJob(user, job.id, { url: null });
+    });
+
+    it("refuses a longer link when adding, merging or editing a job", async () => {
+      const user = await createUser();
+      const long = link(DEMO_CAPS.urlChars + 1);
+      await expect(upsertJob(user, { ...JOB, url: long })).rejects.toBeInstanceOf(ConflictError);
+      await expect(upsertJob(user, { ...JOB, url: long })).rejects.toThrow(URL_MESSAGE);
+      await expect(upsertJob(user, { ...JOB, url: long, captureMethod: "extension" })).rejects.toThrow(URL_MESSAGE);
+      expect(await count("jobs", user)).toBe(0);
+
+      const job = await makeJob(user, { ...JOB, url: "https://example.com/short" });
+      // A duplicate (same company and title) would take the new link.
+      await expect(upsertJob(user, { ...JOB, url: long })).rejects.toThrow(URL_MESSAGE);
+      await expect(updateJob(user, job.id, { url: long })).rejects.toThrow(URL_MESSAGE);
+      const [row] = await testSql()<{ url: string }[]>`SELECT url FROM jobs WHERE id = ${job.id}`;
+      expect(row.url).toBe("https://example.com/short");
+      // Edits that leave the link alone are not checked.
       await updateJob(user, job.id, { title: "Renamed" });
     });
 
@@ -271,11 +316,18 @@ describeDb("the demo's per-workspace caps", () => {
   describe("outside demo mode", () => {
     beforeEach(() => stubDemoMode(false));
 
-    it("let jobs, descriptions, status changes and rules past every cap", async () => {
+    it("let jobs, descriptions, links, status changes and rules past every cap", async () => {
       const user = await createUser({ rules: true });
       await fillJobs(user, DEMO_CAPS.jobs);
-      const job = await makeJob(user, { ...JOB, description: "y".repeat(DEMO_CAPS.descriptionChars + 1) });
-      await updateJob(user, job.id, { description: "z".repeat(DEMO_CAPS.descriptionChars + 1) });
+      const job = await makeJob(user, {
+        ...JOB,
+        url: link(DEMO_CAPS.urlChars + 1),
+        description: "y".repeat(DEMO_CAPS.descriptionChars + 1),
+      });
+      await updateJob(user, job.id, {
+        url: link(DEMO_CAPS.urlChars + 1, "b"),
+        description: "z".repeat(DEMO_CAPS.descriptionChars + 1),
+      });
       await withTx((tx) =>
         createJobFromEmail(tx, user, { company: "Mailfound", title: "Analyst", status: "applied", source: "email" }),
       );

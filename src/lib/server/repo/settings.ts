@@ -1,6 +1,7 @@
 import "server-only";
 import type { Db, Tx } from "@/lib/server/db/client";
 import type { SettingsRow } from "@/lib/server/db/rows";
+import { MAX_SETTINGS_LANGUAGES } from "@/lib/server/schemas";
 
 /**
  * SQL for user_settings: one row per user, created in the first sign-in's transaction. The
@@ -42,10 +43,17 @@ export async function updateSettingsRow(tx: Tx, userId: string, patch: SettingsR
   return row;
 }
 
-/** Appends the language to settings.languages unless it is already there. */
+/**
+ * Appends the language to settings.languages unless it is already there, or the list already
+ * holds MAX_SETTINGS_LANGUAGES (what PATCH /api/settings allows). Without that cap, adding a rule
+ * in a new language and deleting it again, over and over, would grow the list without end. A
+ * language left out costs little: the list only feeds the language guess (lib/inbox/pipeline/
+ * language.ts), and Settings lists every rule's language anyway.
+ */
 export async function addSettingsLanguage(tx: Tx, userId: string, language: string): Promise<void> {
   await ensureSettingsRow(tx, userId);
   await tx`
     UPDATE user_settings SET languages = array_append(languages, ${language}::text)
-    WHERE user_id = ${userId} AND NOT (${language}::text = ANY(languages))`;
+    WHERE user_id = ${userId} AND NOT (${language}::text = ANY(languages))
+      AND cardinality(languages) < ${MAX_SETTINGS_LANGUAGES}::int`;
 }

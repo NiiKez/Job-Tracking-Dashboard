@@ -10,6 +10,7 @@ import { ConflictError } from "@/lib/server/errors";
  *
  *   upsertUserOnSignIn(tx, profile)  by google_sub; a first sign-in also creates the settings
  *                                    row and the default keyword rules (same transaction)
+ *   insertDefaults(tx, userId)       a new user's settings row and default keyword rules
  *   getUser(db, id)                  the user, or null
  */
 
@@ -94,8 +95,13 @@ export async function upsertUserOnSignIn(
   }
 }
 
-/** The settings row and the default keyword rules of a new user. */
-async function insertDefaults(tx: Tx, userId: string): Promise<void> {
+/**
+ * Inserts a new user's user_settings row (DEFAULT_USER_SETTINGS) and the default keyword rules
+ * (DEFAULT_RULES): what a first sign-in gives every user. Call it once, right after inserting the
+ * users row and in the same transaction; a second call fails on the settings row's primary key.
+ * Exported for code that creates users without a Google sign-in (the public demo's workspaces).
+ */
+export async function insertDefaults(tx: Tx, userId: string): Promise<void> {
   const s = DEFAULT_USER_SETTINGS;
   await tx`
     INSERT INTO user_settings

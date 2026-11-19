@@ -79,8 +79,8 @@ import {
  * The callback refuses (no flow was started); disconnect works as usual.
  */
 
-/** The connect flow's state cookie: sent to /api/inbox/* only, separate from sign-in's. */
-export const INBOX_STATE_COOKIE: OAuthStateCookie = { name: "jt_inbox_oauth", path: "/api/inbox" };
+/** The connect flow's state cookie, separate from sign-in's (Path=/, `__Host-` under https: see oauth-state.ts). */
+export const INBOX_STATE_COOKIE: OAuthStateCookie = { name: "jt_inbox_oauth" };
 
 /** What the connect flow asks for. `email` makes login_hint and the ID token's email work. */
 export const INBOX_SCOPES = ["openid", "email", GMAIL_READONLY_SCOPE] as const;
@@ -168,7 +168,7 @@ export function isOwnNavigation(req: Pick<NextRequest, "headers">): boolean {
  * false) only goes to /settings, connecting nothing: the session cookie is SameSite=Lax, so it
  * comes along on another site's link, and without a Google round trip no state proves the click.
  * Not configured → /settings?inbox=error&reason=not_configured. Otherwise a 303 to Google, with
- * the state cookie (10 minutes, path /api/inbox).
+ * the state cookie (10 minutes).
  */
 export async function handleConnectStart(req: NextRequest): Promise<Response> {
   const auth = await authenticate(req);

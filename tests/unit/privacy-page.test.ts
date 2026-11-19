@@ -4,8 +4,9 @@ import { describe, expect, it } from "vitest";
 import PrivacyPage from "@/app/privacy/page";
 
 // src/app/privacy/page.tsx: the public privacy policy says what connecting reads, what stays
-// after Disconnect, that Disconnect only asks Google to revoke, and what the Chrome extension
-// reads, sends and keeps. Text, not layout.
+// after Disconnect, that Disconnect only asks Google to revoke, what the Chrome extension
+// reads, sends and keeps, and what the public demo keeps and for how long. Text, not layout.
+// The real app and the demo serve this one page, which names no person and no host.
 
 const text = renderToStaticMarkup(createElement(PrivacyPage))
   .replace(/<[^>]+>/g, " ")
@@ -62,7 +63,45 @@ describe("the privacy page", () => {
     expect(text).toMatch(/Revoke in Settings, under Chrome extension, or Disconnect in the extension, deletes that browser's key/);
   });
 
+  describe("the public demo", () => {
+    it("is a section of its own, and the page's opening says the demo exists", () => {
+      expect(text).toContain("The public demo");
+      expect(text).toContain("A separate copy of it runs as a public demo with invented data");
+      expect(text).toMatch(/It has no Google sign-in and reads no mail: its jobs and emails are invented\./);
+      expect(text).toContain("Please don't enter real personal data in it.");
+    });
+
+    it("says what it stores: the workspace with what the visitor types, a session cookie and the sidebar's", () => {
+      expect(text).toMatch(/creates a workspace, a copy of the invented data plus whatever you type or change in it/);
+      expect(text).toContain("sets a session cookie in your browser");
+      // src/components/ui/sidebar.tsx writes sidebar_state (max-age 7 days) when the sidebar folds.
+      expect(text).toContain("Folding the sidebar also sets a cookie that holds only that choice, for 7 days.");
+    });
+
+    it("says it is deleted after 24 hours at most, sooner when the demo is full, or when the visitor leaves", () => {
+      expect(text).toMatch(/deleted at most 24 hours after it was created, or at once when you choose .Leave the demo./);
+      expect(text).not.toMatch(/deleted 24 hours after/);
+      // src/lib/server/demo/workspaces.ts, EVICT_AFTER_SECONDS: one hour.
+      expect(text).toContain(
+        "When the demo is full, workspaces at least an hour old can be deleted sooner, oldest first, to make room.",
+      );
+    });
+
+    it("says it is shared with no one", () => {
+      expect(text).toContain("It is shared with no one.");
+    });
+
+    it("says the web logs keep visitors' IP addresses for 14 days", () => {
+      expect(text).toMatch(/web logs record each request with the visitor's IP address\. They are kept for 14 days/);
+    });
+  });
+
   it("names no contact address", () => {
     expect(text).not.toMatch(/[^\s@]+@[^\s@]+\.[a-z]{2,}/i);
+  });
+
+  it("names no host but Google's page for removing access", () => {
+    const hosts = text.match(/\b(?:[a-z0-9-]+\.)+[a-z]{2,}\b/gi) ?? [];
+    expect([...new Set(hosts)]).toEqual(["myaccount.google.com"]);
   });
 });

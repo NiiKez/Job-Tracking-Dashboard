@@ -4,7 +4,7 @@ import { DEFAULT_RULES, RETIRED_DEFAULT_RULES } from "@/lib/domain/defaults";
 import { normalize } from "@/lib/domain/normalize";
 import { getDb } from "@/lib/server/db/client";
 import { BadRequestError, NotFoundError } from "@/lib/server/errors";
-import { ruleInputSchema } from "@/lib/server/schemas";
+import { MAX_SETTINGS_LANGUAGES, ruleInputSchema } from "@/lib/server/schemas";
 import { classify } from "@/lib/server/services/classify";
 import { updateJob } from "@/lib/server/services/jobs";
 import { addRule, deleteRule, listRules, updateDefaultRules } from "@/lib/server/services/rules";
@@ -117,6 +117,23 @@ describeDb("rules, settings and the rule tester", () => {
     await addRule(user, { status: "interview", phrase: "entretien", language: "fr" });
     await addRule(user, { status: "rejected", phrase: "unfortunately", language: "en" });
     expect((await getSettings(getDb(), user)).languages).toEqual(["en", "de", "fr"]);
+  });
+
+  it("stops adding rule languages at the settings' limit, however often rules come and go", async () => {
+    const user = await createUser();
+    // A rule in a new language, deleted again, 25 times: the list ends at the limit, not at 27.
+    const added = Array.from({ length: 25 }, (_, i) => `x${i}`);
+    for (const language of added) {
+      const rule = await addRule(user, { status: "rejected", phrase: `phrase ${language}`, language });
+      await deleteRule(user, rule.id);
+    }
+    const languages = ["en", "de", ...added].slice(0, MAX_SETTINGS_LANGUAGES);
+    expect((await getSettings(getDb(), user)).languages).toEqual(languages);
+    // The rule itself is added all the same.
+    const rule = await addRule(user, { status: "rejected", phrase: "one more", language: "zz" });
+    expect(rule.language).toBe("zz");
+    expect((await getSettings(getDb(), user)).languages).toEqual(languages);
+    expect(MAX_SETTINGS_LANGUAGES).toBe(20);
   });
 
   it("does not add the language of a rule it did not create", async () => {

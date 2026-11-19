@@ -3,6 +3,7 @@ import { DEFAULT_RULES, RETIRED_DEFAULT_RULES } from "@/lib/domain/defaults";
 import { normalize } from "@/lib/domain/normalize";
 import { getDb, withTx, type Db } from "@/lib/server/db/client";
 import { toKeywordRule } from "@/lib/server/db/rows";
+import { checkDemoCap } from "@/lib/server/demo/caps";
 import { BadRequestError, NotFoundError } from "@/lib/server/errors";
 import {
   deleteRuleRow,
@@ -21,7 +22,8 @@ export async function listRules(db: Db, userId: string): Promise<KeywordRule[]> 
 
 /**
  * Adds a rule. The same status and phrase (ignoring case and accents) returns the rule already
- * there. A new rule's language joins settings.languages when it is not in there yet.
+ * there. A new rule's language joins settings.languages when it is not in there yet. In the
+ * public demo a new rule over the cap (demo/caps.ts) is a ConflictError, and nothing is added.
  */
 export async function addRule(userId: string, input: Omit<KeywordRule, "id">): Promise<KeywordRule> {
   const phrase = input.phrase.trim();
@@ -35,7 +37,11 @@ export async function addRule(userId: string, input: Omit<KeywordRule, "id">): P
       phraseNorm,
       language,
     });
-    if (created) await addSettingsLanguage(tx, userId, language);
+    if (created) {
+      // Counted after the insert: one the user already has is no new rule. Throwing rolls it back.
+      await checkDemoCap(tx, userId, "keywordRules", 0);
+      await addSettingsLanguage(tx, userId, language);
+    }
     return toKeywordRule(row);
   });
 }
@@ -45,7 +51,8 @@ export async function addRule(userId: string, input: Omit<KeywordRule, "id">): P
  * removes the retired default phrases (RETIRED_DEFAULT_RULES) and adds the DEFAULT_RULES the user
  * does not have. Rules the user added stay, and so does a default the user deleted only if it is
  * retired: a current default that was deleted comes back. The defaults' languages join
- * settings.languages. Doing it again changes nothing.
+ * settings.languages. Doing it again changes nothing. In the public demo, ending over the rule
+ * cap (demo/caps.ts) is a ConflictError, and nothing changes.
  */
 export async function updateDefaultRules(userId: string): Promise<DefaultRulesUpdate> {
   return withTx(async (tx) => {
@@ -59,6 +66,7 @@ export async function updateDefaultRules(userId: string): Promise<DefaultRulesUp
       userId,
       DEFAULT_RULES.map((r) => ({ ...r, phraseNorm: normalize(r.phrase) })),
     );
+    if (added > 0) await checkDemoCap(tx, userId, "keywordRules", 0);
     for (const language of new Set(DEFAULT_RULES.map((r) => r.language))) {
       await addSettingsLanguage(tx, userId, language);
     }

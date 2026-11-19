@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { isAllowed } from "@/lib/server/auth/allowlist";
-import { restoreEnv, setEnv, signedInEnv } from "./env";
+import { parseEnv } from "@/lib/server/env";
+import { demoEnv, restoreEnv, setEnv, SIGNED_IN_ENV, signedInEnv } from "./env";
 
 describe("isAllowed", () => {
   afterEach(restoreEnv);
@@ -24,6 +25,17 @@ describe("isAllowed", () => {
   it("refuses everyone while sign-in is locked", () => {
     // The allowlist is set, but the Google client is not.
     setEnv({ APP_URL: "https://jobs.example.com", ALLOWED_EMAILS: "owner@example.com" });
+    expect(isAllowed("owner@example.com")).toBe(false);
+  });
+
+  it("refuses everyone in the public demo, which has no allowlist", () => {
+    demoEnv();
+    expect(isAllowed("owner@example.com")).toBe(false);
+  });
+
+  it("reads the given environment instead of the process's", () => {
+    setEnv({});
+    expect(isAllowed("owner@example.com", parseEnv(SIGNED_IN_ENV))).toBe(true);
     expect(isAllowed("owner@example.com")).toBe(false);
   });
 

@@ -6,9 +6,10 @@ import { GET as signOutGet, POST as signOut } from "@/app/auth/signout/route";
 import { GET as getMe } from "@/app/api/me/route";
 import { DEFAULT_RULES } from "@/lib/domain/defaults";
 import { hashSessionToken } from "@/lib/server/auth/session";
+import { countRows, makeJob } from "../helpers/factories";
 import { describeDb, testSql } from "../helpers/test-db";
-import { APP_ORIGIN, CLIENT_ID, restoreEnv, setEnv, signedInEnv } from "../unit/auth/env";
-import { ctx, fakeIdToken, googleClaims, OWNER, request, setCookieFor, setCookies, signedIn } from "./helpers";
+import { APP_ORIGIN, CLIENT_ID, demoEnv, restoreEnv, setEnv, signedInEnv } from "../unit/auth/env";
+import { ctx, demoSignedIn, fakeIdToken, googleClaims, OWNER, request, setCookieFor, setCookies, signedIn } from "./helpers";
 
 vi.mock("next/server", async (importOriginal) => ({
   ...(await importOriginal<typeof import("next/server")>()),
@@ -16,7 +17,7 @@ vi.mock("next/server", async (importOriginal) => ({
 }));
 
 const SESSION = "__Host-jt_session";
-const STATE = "__Secure-jt_oauth";
+const STATE = "__Host-jt_oauth";
 const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 
 /** "name=value" from a Set-Cookie value. */
@@ -89,7 +90,7 @@ describeDb("/auth routes", () => {
       expect(state).toMatch(/^[A-Za-z0-9_-]{43}$/);
 
       expect(setCookieFor(res, STATE)).toMatch(
-        /^__Secure-jt_oauth=[A-Za-z0-9_-]+; Path=\/auth; Max-Age=600; Secure; HttpOnly; SameSite=Lax$/,
+        /^__Host-jt_oauth=[A-Za-z0-9_-]+; Path=\/; Max-Age=600; Secure; HttpOnly; SameSite=Lax$/,
       );
       const stored = JSON.parse(Buffer.from(cookie.split("=")[1], "base64url").toString("utf8"));
       expect(stored.s).toBe(state);
@@ -119,6 +120,18 @@ describeDb("/auth routes", () => {
       const res = await startSignIn(request("/auth/google"));
       expect(res.headers.get("location")).toBe("/login?error=not_configured");
     });
+
+    it("in the demo, sends the browser to /login: no Google, no cookie, no next", async () => {
+      demoEnv();
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
+      const res = await startSignIn(request("/auth/google?next=%2Freview"));
+      expect(res.status).toBe(303);
+      expect(res.headers.get("location")).toBe(`${APP_ORIGIN}/login`);
+      expect(res.headers.get("cache-control")).toBe("no-store");
+      expect(setCookies(res)).toEqual([]);
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
   });
 
   /* ------------------------------------------------ /auth/google/callback */
@@ -142,7 +155,7 @@ describeDb("/auth routes", () => {
       expect(sent[0].get("redirect_uri")).toBe(`${APP_ORIGIN}/auth/google/callback`);
 
       // State cookie cleared, session cookie set.
-      expect(setCookieFor(res, STATE)).toMatch(/^__Secure-jt_oauth=; Path=\/auth; Max-Age=0; /);
+      expect(setCookieFor(res, STATE)).toMatch(/^__Host-jt_oauth=; Path=\/; Max-Age=0; /);
       const session = setCookieFor(res, SESSION)!;
       expect(session).toMatch(
         /^__Host-jt_session=[A-Za-z0-9_-]{43}; Path=\/; Max-Age=2592000; Secure; HttpOnly; SameSite=Lax$/,
@@ -205,6 +218,18 @@ describeDb("/auth routes", () => {
       expect((await back("code=abc", cookie)).headers.get("location")).toBe(`${failed}&next=%2Freview`);
       expect(fetchMock).not.toHaveBeenCalled();
       expect(await counts()).toEqual({ users: 0, sessions: 0 });
+    });
+
+    it("ignores the state under the old __Secure- name (Path=/auth): that sign-in fails once, a new one works", async () => {
+      const old = await begin("/review");
+      const { fetchMock } = stubTokenEndpoint(idTokenAnswer(googleClaims(CLIENT_ID)));
+      vi.spyOn(console, "warn").mockImplementation(() => {});
+      const res = await back(`code=abc&state=${old.state}`, old.cookie.replace(`${STATE}=`, "__Secure-jt_oauth="));
+      expect(res.headers.get("location")).toBe(`${APP_ORIGIN}/login?error=failed`);
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      const retry = await begin("/review");
+      expect((await back(`code=abc&state=${retry.state}`, retry.cookie)).headers.get("location")).toBe(`${APP_ORIGIN}/review`);
     });
 
     it("fails when Google reports an error (e.g. the user cancelled)", async () => {
@@ -303,6 +328,29 @@ describeDb("/auth routes", () => {
       expect(res.headers.get("location")).toBe(`${APP_ORIGIN}/login?error=not_configured`);
       expect(fetchMock).not.toHaveBeenCalled();
     });
+
+    it("refuses an ID token whose sub carries the demo marker: no user, no session", async () => {
+      const { state, cookie } = await begin();
+      stubTokenEndpoint(idTokenAnswer(googleClaims(CLIENT_ID, { sub: "demo:0190f5a2-0000-7000-8000-000000000000" })));
+      vi.spyOn(console, "warn").mockImplementation(() => {});
+      const res = await back(`code=abc&state=${state}`, cookie);
+      expect(res.headers.get("location")).toBe(`${APP_ORIGIN}/login?error=failed`);
+      expect(setCookieFor(res, SESSION)).toBeUndefined();
+      expect(await counts()).toEqual({ users: 0, sessions: 0 });
+    });
+
+    it("in the demo, sends the browser to /login: no Google, no cookie touched, nothing saved", async () => {
+      const { state, cookie } = await begin("/review");
+      demoEnv();
+      const { fetchMock } = stubTokenEndpoint(idTokenAnswer(googleClaims(CLIENT_ID)));
+      const res = await back(`code=abc&state=${state}`, cookie);
+      expect(res.status).toBe(303);
+      expect(res.headers.get("location")).toBe(`${APP_ORIGIN}/login`);
+      expect(res.headers.get("cache-control")).toBe("no-store");
+      expect(setCookies(res)).toEqual([]);
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(await counts()).toEqual({ users: 0, sessions: 0 });
+    });
   });
 
   /* ------------------------------------------------------- /auth/signout */
@@ -335,6 +383,54 @@ describeDb("/auth routes", () => {
         expect(res.headers.get("cache-control")).toBe("no-store");
         expect(setCookies(res)).toEqual([]);
       }
+      expect(await counts()).toEqual({ users: 1, sessions: 1 });
+    });
+
+    it("in the demo, POST deletes the visitor's whole workspace, clears the cookie and goes to /login", async () => {
+      demoEnv();
+      const visitor = await demoSignedIn();
+      const other = await demoSignedIn(); // another visitor stays
+      await makeJob(visitor.user.id);
+      await makeJob(other.user.id);
+      const res = await signOut(request("/auth/signout", { method: "POST", cookie: visitor.cookie, contentType: "application/x-www-form-urlencoded" }));
+      expect(res.status).toBe(303);
+      expect(res.headers.get("location")).toBe(`${APP_ORIGIN}/login`);
+      expect(res.headers.get("cache-control")).toBe("no-store");
+      expect(setCookieFor(res, SESSION)).toMatch(/^__Host-jt_session=; Path=\/; Max-Age=0; .*Secure; HttpOnly; SameSite=Lax$/);
+      const users = await testSql()<{ id: string }[]>`SELECT id FROM users`;
+      expect(users.map((u) => u.id)).toEqual([other.user.id]);
+      expect(await counts()).toEqual({ users: 1, sessions: 1 });
+      expect(await countRows("jobs")).toBe(1);
+      expect((await getMe(request("/api/me", { cookie: other.cookie }), ctx())).status).toBe(200);
+    });
+
+    it("in the demo, POST never deletes a user that is not a demo user, only the session", async () => {
+      const owner = await signedIn();
+      demoEnv();
+      const res = await signOut(request("/auth/signout", { method: "POST", cookie: owner.cookie }));
+      expect(res.status).toBe(303);
+      expect(setCookieFor(res, SESSION)).toMatch(/Max-Age=0/);
+      expect(await counts()).toEqual({ users: 1, sessions: 0 });
+    });
+
+    it("in the demo, POST without a session or with an expired one deletes nothing else", async () => {
+      demoEnv();
+      const expired = await demoSignedIn();
+      await testSql()`UPDATE sessions SET expires_at = now() - interval '1 minute'`;
+      for (const cookie of [undefined, `${SESSION}=junk`, expired.cookie]) {
+        const res = await signOut(request("/auth/signout", { method: "POST", cookie }));
+        expect(res.status).toBe(303);
+        expect(setCookieFor(res, SESSION)).toMatch(/Max-Age=0/);
+      }
+      // The expired session's row is gone; its workspace is the purge's to delete.
+      expect(await counts()).toEqual({ users: 1, sessions: 0 });
+    });
+
+    it("in the demo, refuses a POST from another origin: the workspace stays", async () => {
+      demoEnv();
+      const { cookie } = await demoSignedIn();
+      const res = await signOut(request("/auth/signout", { method: "POST", cookie, origin: "https://evil.example" }));
+      expect(res.status).toBe(403);
       expect(await counts()).toEqual({ users: 1, sessions: 1 });
     });
 

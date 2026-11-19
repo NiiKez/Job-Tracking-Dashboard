@@ -62,7 +62,7 @@ export interface SignInFlow {
 
 /** The browser's sign-in state cookie, decoded; undefined when it has none. */
 export async function signInFlow(context: BrowserContext): Promise<SignInFlow | undefined> {
-  const cookie = (await context.cookies(BASE_URL + "/auth")).find((c) => c.name === STATE_COOKIE);
+  const cookie = (await context.cookies(BASE_URL)).find((c) => c.name === STATE_COOKIE);
   if (!cookie) return undefined;
   const stored = JSON.parse(Buffer.from(cookie.value, "base64url").toString("utf8")) as {
     s: string;

@@ -12,13 +12,19 @@ export const metadata: Metadata = {
  * (docs/gmail-setup.md, "Branding"). Public: src/proxy.ts lets /privacy through without a session.
  * Static on purpose: no session, no data, no client code. It must name no person, email address,
  * server or provider (this is a public repo and a public page). The facts here follow
- * docs/plan/2-gmail-ingest.md, "What is stored", and docs/plan/4-chrome-extension.md for the
- * extension; change both together. "The past 180 days" is this deployment's INBOX_BACKFILL_DAYS
- * (owner, 2026-11-17; the code's default is 30): a copy that sets another value must change this
- * page too.
+ * docs/plan/2-gmail-ingest.md, "What is stored", docs/plan/4-chrome-extension.md for the
+ * extension and docs/plan/5-public-demo.md for the demo; change both together. "The past 180
+ * days" is this deployment's INBOX_BACKFILL_DAYS (owner, 2026-11-17; the code's default is 30): a
+ * copy that sets another value must change this page too.
+ *
+ * The real app and the public demo are the same build, so both serve this page: every section
+ * holds for both. The demo's section is written about the demo, whichever copy shows it. Its "14
+ * days" is how long the server's web logs are kept (the runbook), not something the app sets; its
+ * "7 days" is the sidebar cookie's max-age (src/components/ui/sidebar.tsx) and "an hour" is
+ * EVICT_AFTER_SECONDS (src/lib/server/demo/workspaces.ts).
  */
 
-const LAST_UPDATED = "2026-11-18";
+const LAST_UPDATED = "2026-11-19";
 
 const USER_DATA_POLICY = "https://developers.google.com/terms/api-services-user-data-policy";
 const GOOGLE_PERMISSIONS = "https://myaccount.google.com/permissions";
@@ -52,7 +58,7 @@ export default function PrivacyPage() {
 
         <h1 className="mt-6 text-2xl leading-9 font-semibold">Privacy policy</h1>
         <p className="mt-1 text-meta text-muted-foreground">
-          Last updated <time dateTime={LAST_UPDATED}>18 Nov 2026</time>
+          Last updated <time dateTime={LAST_UPDATED}>19 Nov 2026</time>
         </p>
 
         <Section title="What this app is">
@@ -61,6 +67,10 @@ export default function PrivacyPage() {
             search. It has no other users, and only the one Google account it is set up for can sign in.
           </p>
           <p>It runs on its operator&apos;s own server.</p>
+          <p>
+            A separate copy of it runs as a public demo with invented data, for anyone to try without signing in. The
+            demo is described below.
+          </p>
         </Section>
 
         <Section title="Google data it accesses">
@@ -126,6 +136,35 @@ export default function PrivacyPage() {
             <li>
               The app keeps a hash of the key, the browser it was connected in (such as &ldquo;Chrome on Linux&rdquo;),
               and when it was connected and last used.
+            </li>
+          </List>
+        </Section>
+
+        <Section title="The public demo">
+          <p>
+            The demo is a separate copy of the app with its own database. It has no Google sign-in and reads no mail:
+            its jobs and emails are invented. Please don&apos;t enter real personal data in it.
+          </p>
+          <List>
+            <li>
+              <strong className="font-semibold">What it stores:</strong> pressing &ldquo;Try the demo&rdquo; creates a
+              workspace, a copy of the invented data plus whatever you type or change in it, and sets a session cookie
+              in your browser that ties the workspace to you. Folding the sidebar also sets a cookie that holds only
+              that choice, for 7 days.
+            </li>
+            <li>
+              <strong className="font-semibold">When it is deleted:</strong> the workspace, with everything in it, is
+              deleted at most 24 hours after it was created, or at once when you choose &ldquo;Leave the demo&rdquo;.
+              &ldquo;Start over&rdquo; deletes it and gives you a new one. When the demo is full, workspaces at least
+              an hour old can be deleted sooner, oldest first, to make room.
+            </li>
+            <li>
+              <strong className="font-semibold">Who sees it:</strong> only the browser that holds the session cookie
+              can open the workspace. It is shared with no one.
+            </li>
+            <li>
+              <strong className="font-semibold">Server logs:</strong> the server&apos;s web logs record each request
+              with the visitor&apos;s IP address. They are kept for 14 days, then deleted.
             </li>
           </List>
         </Section>

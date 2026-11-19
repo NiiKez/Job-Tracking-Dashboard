@@ -4,10 +4,11 @@ import path from "node:path";
 import "next/dist/server/node-environment-baseline";
 import { adapter } from "next/dist/server/web/adapter";
 import { NextRequest } from "next/server";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { SESSION_COOKIE_PLAIN, SESSION_COOKIE_SECURE } from "@/lib/server/auth/session";
+import { resetEnvForTests } from "@/lib/server/env";
 import { config, proxy } from "@/proxy";
-import { restoreEnv, setEnv, signedInEnv } from "./env";
+import { demoEnv, restoreEnv, setEnv, signedInEnv } from "./env";
 
 /**
  * The URL Next hands the proxy. Under `next start` it is the server's own hostname and port, not
@@ -197,6 +198,45 @@ describe("proxy", () => {
     }
   });
 
+  it("sends the demo's entry page to /login, without the demo's headers", () => {
+    signedInEnv();
+    for (const p of ["/login/demo", "/login/demo?error=busy", "/login/demo?next=%2Fjobs"]) {
+      const res = run(p);
+      expect(res.status, p).toBe(307);
+      expect(res.headers.get("location"), p).toBe("https://jobs.example.com/login");
+      expect(res.headers.get("cache-control")).toBe("no-store");
+      expect(res.headers.get("x-robots-tag")).toBeNull();
+    }
+    // A session changes nothing: the page belongs to the demo.
+    expect(run("/login/demo", `${SESSION_COOKIE_SECURE}=x`).headers.get("location")).toBe("https://jobs.example.com/login");
+    // Below it stays open, as everything under /login/ (a 404 page).
+    expect(passes(run("/login/demo/x"))).toBe(true);
+  });
+
+  it.each([
+    ["Google mode", () => signedInEnv()],
+    ["locked mode", () => signedInEnv({ GOOGLE_CLIENT_ID: "" })],
+  ])("in %s, rewrites /auth/demo to a path with no route, so Next answers its own 404 page", (_, arrange) => {
+    arrange();
+    for (const method of ["GET", "POST", "HEAD", "OPTIONS", "PUT"]) {
+      for (const cookie of [{}, { cookie: `${SESSION_COOKIE_SECURE}=x` }] as Array<Record<string, string>>) {
+        const res = runWith("/auth/demo", { origin: "https://jobs.example.com", ...cookie }, method);
+        expect(res.headers.get("x-middleware-rewrite"), method).toBe(`${SERVER}/auth/demo/not-found`);
+        expect(res.headers.get("location")).toBeNull();
+      }
+    }
+    // Only exactly that path.
+    expect(passes(run("/auth/demox"))).toBe(true);
+    expect(run("/auth/demox").headers.get("x-middleware-rewrite")).toBeNull();
+  });
+
+  it("sets no X-Robots-Tag outside the demo", () => {
+    signedInEnv();
+    for (const res of [run("/"), run("/", `${SESSION_COOKIE_SECURE}=x`), run("/login"), run("/api/jobs")]) {
+      expect(res.headers.get("x-robots-tag")).toBeNull();
+    }
+  });
+
   describe("while sign-in is locked", () => {
     const LOCKED = "https://jobs.example.com/login?error=not_configured";
 
@@ -275,6 +315,16 @@ describe("proxy", () => {
       expect(passes(run("/login?error=not_configured"))).toBe(true);
     });
 
+    it("sends the demo's entry page to /login?error=not_configured", () => {
+      signedInEnv({ GOOGLE_CLIENT_ID: "" });
+      for (const cookie of [undefined, `${SESSION_COOKIE_SECURE}=x`]) {
+        const res = run("/login/demo?error=busy", cookie);
+        expect(res.status).toBe(307);
+        expect(res.headers.get("location")).toBe(LOCKED);
+        expect(res.headers.get("x-robots-tag")).toBeNull();
+      }
+    });
+
     it("leaves /api/* as it is: 401 without a cookie, through with one (route() answers 401)", async () => {
       signedInEnv({ GOOGLE_CLIENT_SECRET: "" });
       const res = run("/api/jobs");
@@ -300,6 +350,137 @@ describe("proxy", () => {
     ])("leaves %s alone", (p) => {
       signedInEnv({ GOOGLE_CLIENT_ID: "" });
       expect(passes(run(p))).toBe(true);
+    });
+  });
+
+  describe("in demo mode", () => {
+    const ENTRY = "https://jobs.example.com/login/demo";
+    const NO_INDEX = "noindex, nofollow";
+
+    /** A 307 to the entry page, no-store, with the demo's X-Robots-Tag. */
+    function expectToEntry(res: Response, label: string) {
+      expect(res.status, label).toBe(307);
+      expect(res.headers.get("location"), label).toBe(ENTRY);
+      expect(res.headers.get("cache-control"), label).toBe("no-store");
+      expect(res.headers.get("x-robots-tag"), label).toBe(NO_INDEX);
+    }
+
+    it("sends /login to the entry page whatever its query, signed in or not", () => {
+      demoEnv();
+      for (const p of ["/login", "/login?next=%2Fjobs", "/login?error=not_configured", "/login?error=failed&next=%2F"]) {
+        for (const cookie of [undefined, `${SESSION_COOKIE_SECURE}=x`, `${SESSION_COOKIE_PLAIN}=x`]) {
+          expectToEntry(run(p, cookie), `${p} ${cookie ?? ""}`);
+        }
+      }
+    });
+
+    it("sends every signed-out page to the entry page, without next", () => {
+      demoEnv();
+      for (const p of ["/", "/jobs/abc?tab=emails", "/settings", "/review", "/activity", "/extension/connect", "/no-such-page", "//evil/path"]) {
+        expectToEntry(run(p), p);
+        // An empty cookie is no session.
+        expectToEntry(run(p, `${SESSION_COOKIE_SECURE}=`), p);
+      }
+    });
+
+    it("lets a page with a session cookie through (route() checks it), with X-Robots-Tag", () => {
+      demoEnv();
+      for (const cookie of [`${SESSION_COOKIE_SECURE}=x`, `${SESSION_COOKIE_PLAIN}=x`]) {
+        for (const p of ["/", "/settings", "/jobs/abc"]) {
+          const res = run(p, cookie);
+          expect(passes(res), p).toBe(true);
+          expect(res.headers.get("x-robots-tag")).toBe(NO_INDEX);
+        }
+      }
+    });
+
+    it("leaves the entry page open, signed out and inside a workspace (pressing the button there starts over)", () => {
+      demoEnv();
+      for (const p of ["/login/demo", "/login/demo?error=busy"]) {
+        for (const cookie of [undefined, `${SESSION_COOKIE_SECURE}=x`]) {
+          const res = run(p, cookie);
+          expect(passes(res), p).toBe(true);
+          expect(res.headers.get("x-robots-tag")).toBe(NO_INDEX);
+        }
+      }
+    });
+
+    it.each([
+      "/auth/demo",
+      "/auth/signout",
+      "/auth/google",
+      "/auth/google/callback?code=x&state=y",
+      "/auth/options",
+      "/privacy",
+      "/api/health",
+      "/robots.txt",
+      "/file.svg",
+    ])("leaves %s open, with X-Robots-Tag", (p) => {
+      demoEnv();
+      const res = run(p);
+      expect(passes(res)).toBe(true);
+      expect(res.headers.get("x-robots-tag")).toBe(NO_INDEX);
+    });
+
+    it("keeps POST /auth/demo open: the entry form posts there signed out", () => {
+      demoEnv();
+      const res = runWith("/auth/demo", { origin: "https://jobs.example.com" }, "POST");
+      expect(passes(res)).toBe(true);
+      expect(res.headers.get("x-middleware-rewrite")).toBeNull();
+    });
+
+    it("answers a signed-out API request 401, and lets a cookie or a Bearer header through", async () => {
+      demoEnv();
+      const res = run("/api/jobs");
+      expect(res.status).toBe(401);
+      expect(res.headers.get("cache-control")).toBe("no-store");
+      expect(res.headers.get("x-robots-tag")).toBe(NO_INDEX);
+      expect(await res.json()).toEqual({ error: "Not signed in" });
+      expect(passes(run("/api/jobs", `${SESSION_COOKIE_SECURE}=x`))).toBe(true);
+      // The extension's key routes answer 401 themselves in the demo (route()).
+      expect(passes(runWith("/api/extension/session", { authorization: "Bearer x" }))).toBe(true);
+    });
+
+    it("sends the inbox flows' signed-out navigations to the entry page", () => {
+      demoEnv();
+      expectToEntry(run("/api/inbox/connect"), "connect");
+      expectToEntry(run("/api/inbox/callback?code=x&state=y"), "callback");
+    });
+
+    it("never takes the redirect's host from the request", () => {
+      demoEnv();
+      const req = new NextRequest("http://evil.example/settings", {
+        headers: { host: "evil.example", "x-forwarded-host": "evil.example" },
+      });
+      expect(proxy(req).headers.get("location")).toBe(ENTRY);
+    });
+
+    it("through Next's adapter: APP_URL's Location, and X-Robots-Tag on redirects and on requests passed on", async () => {
+      demoEnv();
+      const spoofed = { host: "evil.example.com", "x-forwarded-host": "evil.example.com" };
+      for (const p of ["/", "/login", "/jobs/x?y=1"]) {
+        const res = await runInNext(p, spoofed);
+        expect(res.status, p).toBe(307);
+        expect(res.headers.get("location"), p).toBe(ENTRY);
+        expect(res.headers.get("x-robots-tag"), p).toBe(NO_INDEX);
+      }
+      for (const p of ["/login/demo", "/privacy"]) {
+        const res = await runInNext(p);
+        expect(res.headers.get("x-middleware-next"), p).toBe("1");
+        expect(res.headers.get("x-robots-tag"), p).toBe(NO_INDEX);
+      }
+    });
+
+    it("counts a demo environment the parser refuses as locked, without X-Robots-Tag", () => {
+      // DEMO_MODE=on beside a Google value is a parse error (env.ts NOT_IN_DEMO); the app would
+      // not start, and the proxy treats it like any malformed environment.
+      demoEnv();
+      vi.stubEnv("GOOGLE_CLIENT_ID", "1234-test.apps.googleusercontent.com");
+      resetEnvForTests();
+      const res = run("/login");
+      expect(res.headers.get("location")).toBe(`${SERVER}/login?error=not_configured`);
+      expect(res.headers.get("x-robots-tag")).toBeNull();
+      expect(run("/login/demo").headers.get("location")).toBe(`${SERVER}/login?error=not_configured`);
     });
   });
 

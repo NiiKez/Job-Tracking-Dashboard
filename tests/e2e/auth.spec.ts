@@ -24,7 +24,7 @@ import {
   unknownSessionToken,
 } from "./support/auth";
 import { expect, test } from "./support/fixtures";
-import { BASE_URL, SESSION_COOKIE } from "./support/settings";
+import { BASE_URL, DEMO_BASE_URL, SESSION_COOKIE } from "./support/settings";
 
 const FAILED = "Sign-in was cancelled or didn't finish. Try again.";
 
@@ -89,6 +89,39 @@ test.describe("signed out", () => {
     await expect(continueWithGoogle(page)).toHaveAttribute("href", "/auth/google");
     await page.getByRole("link", { name: "Privacy" }).click();
     await expect(page).toHaveURL("/privacy");
+  });
+
+  test("the sign-in page links to the public demo, under the Google button", async ({ page }) => {
+    // The e2e server's DEMO_URL is the demo server's origin (playwright.config.ts).
+    await page.goto("/login");
+    const demo = page.getByRole("link", { name: "Try the demo" });
+    await expect(demo).toHaveAttribute("href", DEMO_BASE_URL);
+    await expect(page.getByText("Just looking?")).toBeVisible();
+    // A plain link, not a form: the real site's form-action 'self' would block a cross-site post.
+    await expect(page.locator("form")).toHaveCount(0);
+    const links = await page.getByRole("main").getByRole("link").allTextContents();
+    expect(links.indexOf("Continue with Google")).toBeLessThan(links.indexOf("Try the demo"));
+    // The real app has no entry page of its own: /login/demo is the real sign-in.
+    await page.goto("/login/demo");
+    await expect(page).toHaveURL("/login");
+    await expect(continueWithGoogle(page)).toBeVisible();
+  });
+
+  test("the demo's entry route answers like a path that does not exist", async ({ page }) => {
+    const headers = { Origin: BASE_URL, "Content-Type": "application/x-www-form-urlencoded" };
+    for (const method of ["GET", "POST", "OPTIONS"] as const) {
+      const [demo, unknown] = await Promise.all(
+        ["/auth/demo", "/auth/no-such-route"].map((path) =>
+          page.request.fetch(path, { method, headers, maxRedirects: 0, ...(method === "POST" ? { data: "" } : {}) }),
+        ),
+      );
+      expect(demo.status(), method).toBe(404);
+      for (const name of ["content-type", "cache-control", "allow"]) {
+        expect(demo.headers()[name], `${method} ${name}`).toBe(unknown.headers()[name]);
+      }
+      expect(demo.headers()["set-cookie"]).toBeUndefined();
+    }
+    expect(await (await page.request.post("/auth/demo", { headers, data: "" })).text()).toContain("404");
   });
 });
 
@@ -160,13 +193,13 @@ test.describe("the trip to Google", () => {
     expect(q.get("code_challenge_method")).toBe("S256");
 
     // The browser now holds the flow: the same state, the verifier behind the challenge, and
-    // `next`, in a short-lived cookie sent to /auth only.
+    // `next`, in a short-lived cookie on Path=/ (which gives it the __Host- prefix over https).
     const flow = await signInFlow(context);
     expect(flow).toBeDefined();
     expect(q.get("state")).toBe(flow!.state);
     expect(q.get("code_challenge")).toBe(codeChallenge(flow!.codeVerifier));
     expect(flow!.next).toBe(next);
-    expect(flow!.cookie).toMatchObject({ path: "/auth", httpOnly: true, sameSite: "Lax" });
+    expect(flow!.cookie).toMatchObject({ path: "/", httpOnly: true, sameSite: "Lax" });
     const minutesLeft = (flow!.cookie.expires * 1000 - Date.now()) / 60_000;
     expect(minutesLeft).toBeGreaterThan(8);
     expect(minutesLeft).toBeLessThanOrEqual(10);
@@ -278,10 +311,13 @@ test.describe("the session ends while a page is open", () => {
   /**
    * Opens Settings and waits for its first API answers, its own and the sidebar's, so the session
    * can end without one of them being the call that notices. (The load state is no help: these
-   * calls start after hydration, which can be well after "networkidle" on a busy machine.)
+   * calls start after hydration, which can be well after "networkidle" on a busy machine.) The
+   * extension section asks /api/extension only once /api/me has answered, so it is waited for too.
    */
   async function openSettings(page: Page) {
-    const loaded = ["/api/settings", "/api/rules", "/api/me", "/api/stats"].map((p) => apiResponse(page, "GET", p));
+    const loaded = ["/api/settings", "/api/rules", "/api/me", "/api/stats", "/api/extension"].map((p) =>
+      apiResponse(page, "GET", p),
+    );
     await page.goto("/settings");
     for (const res of await Promise.all(loaded)) expect(res.status()).toBe(200);
   }

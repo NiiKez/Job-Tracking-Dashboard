@@ -8,12 +8,20 @@ import { serializeCookie } from "./session";
 
 /**
  * The short-lived cookie that carries an OAuth flow's state, PKCE verifier and `next` path from
- * the redirect to Google until the callback. Generic: sign-in uses { name: "jt_oauth", path:
- * "/auth" }, area 2's Gmail connection its own name with path "/api/inbox".
+ * the redirect to Google until the callback. Generic: sign-in uses { name: "jt_oauth" }, area 2's
+ * Gmail connection { name: "jt_inbox_oauth" }.
  *
- * Cookie: HttpOnly, SameSite=Lax (Google's redirect back is a top-level GET, which Lax allows),
- * Max-Age 10 minutes, Path from the caller. Under https it is Secure and prefixed: `__Host-` when
- * the path is "/", else `__Secure-` (both make browsers refuse a copy planted over plain http).
+ * Cookie: like the session cookie (session.ts), `__Host-<name>` (Secure, Path=/) when APP_URL is
+ * https, else the plain `<name>` without Secure (local development over http). HttpOnly,
+ * SameSite=Lax (Google's redirect back is a top-level GET, which Lax allows), Max-Age 10 minutes.
+ * Only the name that matches APP_URL is read.
+ *
+ * Why Path=/ and not the callback's own path: only Path=/ allows the `__Host-` prefix, and only
+ * `__Host-` (no Domain, set by this host over https) keeps out a copy planted by another host
+ * under the same parent domain, such as the public demo on a sibling subdomain. A `__Secure-`
+ * cookie with a narrower path refuses plain http but not a sibling's `Domain=` cookie. The price
+ * is that the cookie travels with every request to the app for its 10 minutes.
+ *
  * The issue time travels inside the value, so an old cookie is refused even if a browser kept it.
  *
  *   const flow = startOAuthState(COOKIE, nextFromQuery);
@@ -23,11 +31,12 @@ import { serializeCookie } from "./session";
  */
 
 export interface OAuthStateCookie {
-  /** Base name, without a prefix (e.g. "jt_oauth"). */
+  /** Base name, without a prefix (e.g. "jt_oauth"); one per flow, so two flows never mix. */
   name: string;
-  /** Cookie path: the narrowest path that covers the callback (e.g. "/auth"). */
-  path: string;
 }
+
+/** Every state cookie's path: the `__Host-` prefix requires exactly "/". */
+const OAUTH_STATE_PATH = "/";
 
 export const OAUTH_STATE_MAX_AGE_SECONDS = 600;
 /** generateState() and generateCodeVerifier() give 43 characters; anything far longer is junk. */
@@ -66,15 +75,14 @@ interface Stored {
   t: number;
 }
 
-/** The cookie's full name: prefixed under https. */
+/** The cookie's full name for the current APP_URL: `__Host-` prefixed under https. */
 export function oauthStateCookieName(cookie: OAuthStateCookie): string {
-  if (!isSecureApp()) return cookie.name;
-  return cookie.path === "/" ? `__Host-${cookie.name}` : `__Secure-${cookie.name}`;
+  return isSecureApp() ? `__Host-${cookie.name}` : cookie.name;
 }
 
 function setCookieValue(cookie: OAuthStateCookie, value: string, maxAge: number): string {
   return serializeCookie(oauthStateCookieName(cookie), value, {
-    path: cookie.path,
+    path: OAUTH_STATE_PATH,
     maxAge,
     secure: isSecureApp(),
     httpOnly: true,

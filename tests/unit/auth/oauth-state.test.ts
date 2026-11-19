@@ -9,9 +9,8 @@ import {
 } from "@/lib/server/auth/oauth-state";
 import { restoreEnv, signedInEnv } from "./env";
 
-const SIGN_IN: OAuthStateCookie = { name: "jt_oauth", path: "/auth" };
-const INBOX: OAuthStateCookie = { name: "jt_inbox_oauth", path: "/api/inbox" };
-const ROOT: OAuthStateCookie = { name: "jt_root", path: "/" };
+const SIGN_IN: OAuthStateCookie = { name: "jt_oauth" };
+const INBOX: OAuthStateCookie = { name: "jt_inbox_oauth" };
 const T0 = Date.UTC(2026, 10, 16, 12, 0, 0);
 
 /** "name=value" from a Set-Cookie header. */
@@ -49,26 +48,37 @@ describe("oauth state cookie", () => {
     }
   });
 
-  it("over https: __Secure- prefix for a sub-path, Secure, HttpOnly, SameSite=Lax, 10 minutes", () => {
+  it("over https: __Host- prefix, Path=/, Secure, HttpOnly, SameSite=Lax, 10 minutes, no Domain", () => {
     signedInEnv({ APP_URL: "https://jobs.example.com" });
     const flow = startOAuthState(SIGN_IN, null, T0);
     expect(flow.setCookie).toMatch(
-      /^__Secure-jt_oauth=[A-Za-z0-9_-]+; Path=\/auth; Max-Age=600; Secure; HttpOnly; SameSite=Lax$/,
+      /^__Host-jt_oauth=[A-Za-z0-9_-]+; Path=\/; Max-Age=600; Secure; HttpOnly; SameSite=Lax$/,
     );
-    expect(oauthStateCookieName(INBOX)).toBe("__Secure-jt_inbox_oauth");
-    expect(startOAuthState(INBOX, null, T0).setCookie).toContain("; Path=/api/inbox; ");
+    expect(oauthStateCookieName(SIGN_IN)).toBe("__Host-jt_oauth");
+    expect(oauthStateCookieName(INBOX)).toBe("__Host-jt_inbox_oauth");
+    expect(startOAuthState(INBOX, null, T0).setCookie).toMatch(
+      /^__Host-jt_inbox_oauth=[A-Za-z0-9_-]+; Path=\/; Max-Age=600; Secure; HttpOnly; SameSite=Lax$/,
+    );
   });
 
-  it("over https with Path=/: the __Host- prefix", () => {
-    signedInEnv({ APP_URL: "https://jobs.example.com" });
-    expect(oauthStateCookieName(ROOT)).toBe("__Host-jt_root");
-    expect(startOAuthState(ROOT, null, T0).setCookie).toMatch(/^__Host-jt_root=[^;]+; Path=\/; /);
-  });
-
-  it("over http: no prefix and no Secure", () => {
+  it("over http: no prefix and no Secure, still Path=/", () => {
     signedInEnv({ APP_URL: "http://localhost:3800" });
     const flow = startOAuthState(SIGN_IN, null, T0);
-    expect(flow.setCookie).toMatch(/^jt_oauth=[A-Za-z0-9_-]+; Path=\/auth; Max-Age=600; HttpOnly; SameSite=Lax$/);
+    expect(flow.setCookie).toMatch(/^jt_oauth=[A-Za-z0-9_-]+; Path=\/; Max-Age=600; HttpOnly; SameSite=Lax$/);
+    expect(oauthStateCookieName(INBOX)).toBe("jt_inbox_oauth");
+    const cleared = finishOAuthState(callback(null), SIGN_IN, flow.state, T0).clearCookie;
+    expect(cleared).toMatch(/^jt_oauth=; Path=\/; Max-Age=0; /);
+    expect(cleared).not.toContain("Secure");
+  });
+
+  it("over http: reads the plain name only", () => {
+    signedInEnv({ APP_URL: "http://localhost:3800" });
+    const flow = startOAuthState(SIGN_IN, "/jobs", T0);
+    const value = pair(flow.setCookie).split("=")[1];
+    expect(finishOAuthState(callback(`jt_oauth=${value}`), SIGN_IN, flow.state, T0)).toMatchObject({ ok: true });
+    expect(finishOAuthState(callback(`__Host-jt_oauth=${value}`), SIGN_IN, flow.state, T0)).toMatchObject({
+      problem: "missing",
+    });
   });
 
   it("always clears the cookie, on success and on failure", () => {
@@ -77,7 +87,7 @@ describe("oauth state cookie", () => {
     const ok = finishOAuthState(callback(pair(flow.setCookie)), SIGN_IN, flow.state, T0);
     const bad = finishOAuthState(callback(null), SIGN_IN, flow.state, T0);
     for (const { clearCookie } of [ok, bad]) {
-      expect(clearCookie).toMatch(/^__Secure-jt_oauth=; Path=\/auth; Max-Age=0; /);
+      expect(clearCookie).toMatch(/^__Host-jt_oauth=; Path=\/; Max-Age=0; /);
       expect(clearCookie).toContain("; Secure; HttpOnly; SameSite=Lax");
     }
   });
@@ -90,11 +100,15 @@ describe("oauth state cookie", () => {
       problem: "missing",
       next: null,
     });
-    // Same value under another name (the http one, or another flow's) does not count.
+    // Same value under another name does not count: the http one (anyone on the network path
+    // could plant it), the __Secure- one from before Path=/ (a sibling host could plant it with
+    // Domain=), or another flow's.
     const value = pair(flow.setCookie).split("=")[1];
-    expect(finishOAuthState(callback(`jt_oauth=${value}`), SIGN_IN, flow.state, T0)).toMatchObject({
-      problem: "missing",
-    });
+    for (const name of ["jt_oauth", "__Secure-jt_oauth"]) {
+      expect(finishOAuthState(callback(`${name}=${value}`), SIGN_IN, flow.state, T0)).toMatchObject({
+        problem: "missing",
+      });
+    }
     expect(finishOAuthState(callback(pair(flow.setCookie)), INBOX, flow.state, T0)).toMatchObject({
       problem: "missing",
     });

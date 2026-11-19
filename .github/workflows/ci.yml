@@ -127,6 +127,48 @@ jobs:
           done
           npm run smoke -- "$APP_URL"
 
+      # The same build started as the public demo (docs/plan/5-public-demo.md, "Step 6"), as the
+      # server's second copy runs it: DEMO_MODE=on with DATABASE_URL and APP_URL only. No Google
+      # value, ALLOWED_EMAILS or INBOX_TOKEN_KEY: the step above set those for its own shell only,
+      # and the demo refuses to start beside any of them. The demo needs a database whose name
+      # ends in _test (or _dev, _demo): the same throwaway one. The smoke test finds the demo by
+      # GET /login and makes one round trip as a visitor (enter, /api/me, leave). An http APP_URL
+      # is allowed because it is on the loopback.
+      - name: Smoke test (demo)
+        env:
+          NODE_ENV: production
+          PORT: "3801"
+          DATABASE_URL: postgresql://postgres@localhost:5432/job_tracker_test
+          APP_URL: http://127.0.0.1:3801
+          DEMO_MODE: "on"
+        run: |
+          npm run migrate
+          if [ -e .next/server/route-cache ]; then
+            echo "::error::.next/server/route-cache exists before the demo starts; the cleanup below would remove part of it"
+            exit 1
+          fi
+          log="$RUNNER_TEMP/smoke-demo-server.log"
+          setsid npm start > "$log" 2>&1 &
+          pid=$!
+          stop() {
+            status=$?
+            kill -TERM -- "-$pid" 2>/dev/null || true
+            wait "$pid" 2>/dev/null || true
+            rm -rf .next/server/route-cache
+            if [ "$status" -ne 0 ]; then
+              echo "::group::Demo server log"
+              cat "$log"
+              echo "::endgroup::"
+            fi
+          }
+          trap stop EXIT
+          for _ in $(seq 60); do
+            curl -s -o /dev/null --max-time 2 "$APP_URL/api/health" && break
+            kill -0 "$pid" 2>/dev/null || { echo "::error::The demo server stopped while starting"; exit 1; }
+            sleep 1
+          done
+          npm run smoke -- "$APP_URL"
+
       # Only when deploy.yml called this: ship exactly this build, without dev dependencies.
       # (The e2e job below builds on its own, so nothing it leaves behind reaches the release.)
       - name: Package release

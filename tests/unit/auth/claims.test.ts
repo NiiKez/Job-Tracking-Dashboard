@@ -128,6 +128,20 @@ describe("validateIdTokenClaims", () => {
     it.each([undefined, "", "   ", 1234, "x".repeat(256)])("refuses %s", (sub) => {
       expect(problem(claims({ sub }))).toBe("subject");
     });
+
+    // The public demo's marker (src/lib/server/demo/marker.ts): sign-in never reaches or makes a demo user.
+    it.each(["demo:0190f5a2-0000-7000-8000-000000000000", "demo:", "demo:110169484474386276334"])(
+      "refuses the demo marker %s",
+      (sub) => {
+        expect(problem(claims({ sub }))).toBe("subject");
+      },
+    );
+
+    it("accepts a sub that only contains the marker, or spells it otherwise", () => {
+      for (const sub of ["110169484474386276334demo:", "Demo:1101", "demo1101"]) {
+        expect(problem(claims({ sub })), sub).toBe("ok");
+      }
+    });
   });
 
   describe("email", () => {

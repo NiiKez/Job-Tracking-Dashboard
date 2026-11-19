@@ -5,7 +5,7 @@ import { redirectTo } from "@/lib/server/auth/guard";
 import { finishOAuthState } from "@/lib/server/auth/oauth-state";
 import { createSession, hashSessionToken, readSessionToken } from "@/lib/server/auth/session";
 import { withTx } from "@/lib/server/db/client";
-import { signInConfig } from "@/lib/server/env";
+import { getEnv, signInConfig } from "@/lib/server/env";
 import { deleteExpiredSessions, deleteSessionByTokenHash } from "@/lib/server/repo/sessions";
 import { upsertUserOnSignIn } from "@/lib/server/repo/users";
 
@@ -22,9 +22,13 @@ const MAX_CODE_LENGTH = 4096;
  * Every failure goes to /login?error=failed (or not_allowed / not_configured), keeping `next`.
  * An account that is not allowed creates no user and no session. The state cookie is cleared on
  * every outcome. Logged lines name the step that failed, never codes, tokens or addresses.
+ *
+ * The public demo (DEMO_MODE=on) starts no Google sign-in, so nothing can come back here: 303 to
+ * /login, before the state cookie or the query is read, and no Set-Cookie at all.
  */
 export async function GET(req: NextRequest) {
   await connection();
+  if (getEnv().demoMode) return redirectTo(loginPath());
   const params = req.nextUrl.searchParams;
   const flow = finishOAuthState(req, SIGN_IN_STATE_COOKIE, params.get("state"));
   const fail = (error: LoginError, reason: string) => {

@@ -340,6 +340,11 @@ export interface Me {
   email: string;
   name: string;
   pictureUrl: string | null;
+  /**
+   * The public demo only (absent, not null, everywhere else): the visitor's workspace, deleted
+   * at `expiresAt` (ISO 8601) with everything in it.
+   */
+  demo?: { expiresAt: string };
 }
 
 /* -------------------------------------------------------- Chrome extension */

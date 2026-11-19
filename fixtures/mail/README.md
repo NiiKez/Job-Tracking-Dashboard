@@ -5,9 +5,9 @@ in tests and in CI, without any Google secret. The code is
 `src/lib/server/inbox/source/fixture-source.ts`; the sync engine cannot tell it from Gmail.
 
 Everything here is made up: people, companies, `example.com` and `*.example` addresses. Several
-messages belong to the demo jobs of `db/seed/fixtures.ts` (Ember Finance, Brightline Energy,
-Lumen Health, Northwind Labs, ...), so a development "Check inbox" on a seeded database moves
-them along. Two go to the review list: an interview invitation for the already rejected Kelpie
+messages belong to the demo jobs of `src/lib/server/demo/fixtures.ts` (Ember Finance, Brightline
+Energy, Lumen Health, Northwind Labs, ...), so a development "Check inbox" on a seeded database
+moves them along. Two go to the review list: an interview invitation for the already rejected Kelpie
 Analytics job ("Doesn't fit the current status") and a call request from an applicant-tracking
 system for a company with no demo job ("Unknown job"). The expected outcome of every file is the
 table in `tests/db/inbox/ingest.test.ts`.

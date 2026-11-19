@@ -20,8 +20,8 @@ import type {
   UpsertResult,
 } from "@/lib/types";
 import { describeDb, testSql } from "../helpers/test-db";
-import { restoreEnv, signedInEnv } from "../unit/auth/env";
-import { ctx, OWNER, request, signedIn } from "./helpers";
+import { demoEnv, restoreEnv, signedInEnv } from "../unit/auth/env";
+import { ctx, demoSignedIn, OWNER, request, signedIn } from "./helpers";
 
 // Every /api/extension route on the real database, called directly: the cookie routes with a
 // real session, the key routes with a key made through POST /api/extension/keys. The key guard
@@ -322,5 +322,36 @@ describeDb("the extension's API on the database", () => {
     for (const body of [{}, { ...input, title: "" }, { ...input, url: "javascript:alert(1)" }, { ...input, status: "offer" }]) {
       await fails(await saveJob(withKey(token, "POST", "/api/extension/jobs", body), ctx()), 400);
     }
+  });
+
+  /* ------------------------------------------------------- the demo */
+
+  it("in the demo, the cookie routes answer 403 with a message and the key routes 401", async () => {
+    const { token, key } = await connect();
+    build.dir = built("1.3.1");
+    demoEnv();
+    const visitor = (await demoSignedIn()).cookie;
+    const off = "The Chrome extension isn't available in the demo.";
+    const refused = async (res: Response) => {
+      expect(res.headers.get("cache-control")).toBe("no-store");
+      expect(await fails(res, 403)).toEqual({ error: off });
+    };
+
+    await refused(await getOverview(request("/api/extension", { cookie: visitor }), ctx()));
+    await refused(await download(request("/api/extension/download", { cookie: visitor }), ctx()));
+    await refused(await createKey(send("POST", "/api/extension/keys", { label: "Chrome on Linux" }, visitor), ctx()));
+    // Before the body is read: an invalid one is refused the same way.
+    await refused(await createKey(send("POST", "/api/extension/keys", {}, visitor), ctx()));
+    await refused(await revokeKey(send("DELETE", `/api/extension/keys/${key.id}`, undefined, visitor), ctx({ id: key.id })));
+    // Signed out is still a 401 first.
+    await fails(await getOverview(request("/api/extension"), ctx()), 401);
+
+    // The key routes are shut (guard.test.ts): even a key made before stays unused, and is kept.
+    await fails(await getSession(withKey(token), ctx()), 401);
+    await fails(await disconnect(withKey(token, "DELETE"), ctx()), 401);
+    await fails(await readPage(withKey(token, "POST", "/api/extension/read", { page: { url: "https://example.com/jobs/1" } }), ctx()), 401);
+    await fails(await saveJob(withKey(token, "POST", "/api/extension/jobs", { title: "x", company: "y", status: "saved" }), ctx()), 401);
+    const keys = await testSql()<{ id: string }[]>`SELECT id FROM extension_keys`;
+    expect(keys.map((k) => k.id)).toEqual([key.id]);
   });
 });

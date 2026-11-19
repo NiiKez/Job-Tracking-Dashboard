@@ -12,6 +12,7 @@ import { GET as listRules, POST as addRule } from "@/app/api/rules/route";
 import { GET as getSettings, PATCH as patchSettings } from "@/app/api/settings/route";
 import { GET as getStats } from "@/app/api/stats/route";
 import { withTx } from "@/lib/server/db/client";
+import { CLASSIFY_LIMITS, MAX_SETTINGS_LANGUAGES } from "@/lib/server/schemas";
 import type {
   ClassifyResult,
   Email,
@@ -363,6 +364,12 @@ describeDb("the API on the database", () => {
     await fails(await patchJob(send("PATCH", `/api/jobs/${job.id}`, cookie, { status: "hired" }), ctx({ id: job.id })), 400);
     await fails(await patchSettings(send("PATCH", "/api/settings", cookie, { noResponseDays: 3 }), ctx()), 400);
     await fails(await patchSettings(send("PATCH", "/api/settings", cookie, { inbox: { intervalMinutes: 1 } }), ctx()), 400);
+    // Capped lists and text: a list of languages too long, a rule tester body too long.
+    const languages = Array.from({ length: MAX_SETTINGS_LANGUAGES + 1 }, (_, i) => `l${i}`);
+    await fails(await patchSettings(send("PATCH", "/api/settings", cookie, { languages }), ctx()), 400);
+    await fails(await patchSettings(send("PATCH", "/api/settings", cookie, { languages: ["english"] }), ctx()), 400);
+    const body = "x".repeat(CLASSIFY_LIMITS.body + 1);
+    await fails(await classify(send("POST", "/api/classify", cookie, { subject: "Hi", body }), ctx()), 400);
     await fails(await parse(send("POST", "/api/parse", cookie, { input: "   " }), ctx()), 400);
     // Dates PostgreSQL has no room for (year 0) or that postgres.js reads back wrong (years 1-99).
     for (const at of ["0000-01-01T00:00:00Z", "0026-12-01T22:59:00Z", "1969-12-31T23:59:59Z"]) {

@@ -56,6 +56,22 @@ describe("session cookie", () => {
     expect(attrs.get("path")).toBe("/");
   });
 
+  it("takes another Max-Age for a fixed-lifetime session, with the same name, path and flags", () => {
+    signedInEnv({ APP_URL: "https://jobs.example.com" });
+    const { token } = newSessionToken();
+    const cookie = sessionCookie(token, 24 * 60 * 60);
+    expect(cookie.startsWith(`__Host-jt_session=${token}; `)).toBe(true);
+    const attrs = attributes(cookie);
+    expect(attrs.get("max-age")).toBe("86400");
+    expect(attrs.has("expires")).toBe(false);
+    expect(attrs.get("path")).toBe("/");
+    expect(attrs.has("secure")).toBe(true);
+    expect(attrs.has("httponly")).toBe(true);
+    expect(attrs.get("samesite")).toBe("Lax");
+    // Without one: 30 days, as before.
+    expect(attributes(sessionCookie(token)).get("max-age")).toBe(String(THIRTY_DAYS));
+  });
+
   it("clears with the same name, path and flags and Max-Age=0", () => {
     signedInEnv({ APP_URL: "https://jobs.example.com" });
     const cleared = clearedSessionCookie();

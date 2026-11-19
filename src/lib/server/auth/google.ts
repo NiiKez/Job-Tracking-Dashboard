@@ -1,6 +1,7 @@
 import "server-only";
 import { decodeIdToken, Google } from "arctic";
 import { isSitePath, safeNextPath } from "@/lib/domain/safe-next";
+import { isDemoSub } from "@/lib/server/demo/marker";
 import { signInConfig } from "@/lib/server/env";
 import type { SignInProfile } from "@/lib/server/repo/users";
 import type { OAuthStateCookie } from "./oauth-state";
@@ -22,8 +23,8 @@ import type { OAuthStateCookie } from "./oauth-state";
 
 export const SIGN_IN_REDIRECT_PATH = "/auth/google/callback";
 export const SIGN_IN_SCOPES = ["openid", "email", "profile"] as const;
-/** The sign-in flow's state cookie: sent to /auth/* only. */
-export const SIGN_IN_STATE_COOKIE: OAuthStateCookie = { name: "jt_oauth", path: "/auth" };
+/** The sign-in flow's state cookie (Path=/, `__Host-` under https: see oauth-state.ts). */
+export const SIGN_IN_STATE_COOKIE: OAuthStateCookie = { name: "jt_oauth" };
 
 /** Google's token endpoint answers within a few seconds; a hanging exchange fails the sign-in. */
 const EXCHANGE_TIMEOUT_MS = 10_000;
@@ -102,7 +103,9 @@ export type ClaimsCheck = { ok: true; profile: SignInProfile } | { ok: false; pr
  * - `aud` is the client id; a list of audiences must contain it, and then `azp` must be present.
  *   A present `azp` must be the client id.
  * - `exp` is in the future (60 s of clock skew allowed)
- * - `sub` is a non-empty string (at most 255 characters, as users.google_sub allows)
+ * - `sub` is a non-empty string (at most 255 characters, as users.google_sub allows) that does not
+ *   start with the public demo's marker "demo:" (src/lib/server/demo/marker.ts). Google's never
+ *   does; refusing it means sign-in can neither reach a demo user's row nor create one
  * - `email` is a string and `email_verified` is the boolean true (not "true")
  * The profile carries the email lower-cased and trimmed, `name` ("" when absent, at most 200
  * characters) and `picture` (only an https URL, else null).
@@ -129,7 +132,7 @@ export function validateIdTokenClaims(claims: unknown, opts: { clientId: string;
     return { ok: false, problem: "expired" };
   }
 
-  if (typeof c.sub !== "string" || c.sub.trim() === "" || c.sub.length > 255) {
+  if (typeof c.sub !== "string" || c.sub.trim() === "" || c.sub.length > 255 || isDemoSub(c.sub)) {
     return { ok: false, problem: "subject" };
   }
 

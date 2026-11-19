@@ -10,8 +10,8 @@ import { authenticate, MAX_JSON_BYTES, readJson, redirectTo, requireUser, route 
 import { BadRequestError, ConflictError, NotFoundError, UnauthorizedError } from "@/lib/server/errors";
 import { createExtensionKey } from "@/lib/server/services/extension";
 import { describeDb, testSql } from "../helpers/test-db";
-import { APP_ORIGIN, restoreEnv, setEnv, signedInEnv } from "../unit/auth/env";
-import { ctx, request, setCookieFor, setCookies, signedIn } from "./helpers";
+import { APP_ORIGIN, demoEnv, restoreEnv, setEnv, signedInEnv } from "../unit/auth/env";
+import { ctx, demoSignedIn, request, setCookieFor, setCookies, signedIn } from "./helpers";
 
 // connection() needs a request scope; called directly, handlers only need it to resolve.
 vi.mock("next/server", async (importOriginal) => ({
@@ -393,6 +393,100 @@ describeDb("route(): the check on every API handler", () => {
     expect((await sessionTimes())[0].expires_at.getTime()).toBeGreaterThan(before[0].expires_at.getTime());
   });
 
+  /* ------------------------------------------------------ sign-in modes */
+
+  describe("sign-in modes: who passes (mayUse)", () => {
+    // Google mode (the beforeEach) is the rest of this file. Here: demo users in each mode, and
+    // Google accounts in the demo (docs/plan/5-public-demo.md, "Three sign-in modes").
+
+    it("google mode refuses a demo user's session: 401, the session deleted, the cookie cleared", async () => {
+      const { cookie, user } = await demoSignedIn();
+      // Interlock 4: even with its address on the allowlist.
+      signedInEnv({ ALLOWED_EMAILS: `owner@example.com,${user.email}` });
+      const owner = await signedIn();
+      await expectNotSignedIn(await getMe(request("/api/me", { cookie }), ctx()), { cleared: true });
+      expect(await sessionCount()).toBe(1);
+      expect((await getMe(request("/api/me", { cookie: owner.cookie }), ctx())).status).toBe(200);
+      expect(await authenticate(request("/x", { cookie: owner.cookie }))).toMatchObject({ ok: true });
+    });
+
+    it("demo mode lets a demo user's session through, and never extends it", async () => {
+      demoEnv();
+      const { cookie, user } = await demoSignedIn();
+      const handler = vi.fn(({ user: u }: { user: unknown }) => ({ u }));
+      const res = await route(handler)(request("/x", { cookie }), ctx());
+      expect(res.status).toBe(200);
+      expect(res.headers.get("cache-control")).toBe("no-store");
+      expect(await res.json()).toEqual({ u: user });
+      expect(setCookies(res)).toEqual([]);
+
+      // A day's fixed lifetime is never due for the sliding extension (session.ts): a minute
+      // before it ends, it is still not extended, and the cookie is not re-sent.
+      await testSql()`
+        UPDATE sessions SET last_seen_at = last_seen_at - interval '1439 minutes',
+          expires_at = expires_at - interval '1439 minutes'`;
+      const before = await sessionTimes();
+      expect(await authenticate(request("/x", { cookie }))).toEqual({ ok: true, user, setCookie: null });
+      expect(await sessionTimes()).toEqual(before);
+      expect(await requireUser(request("/x", { cookie }))).toEqual(user);
+    });
+
+    it("demo mode refuses a Google account's session: 401, the session deleted, the cookie cleared", async () => {
+      const owner = await signedIn();
+      demoEnv();
+      const visitor = await demoSignedIn();
+      await expectNotSignedIn(await getMe(request("/api/me", { cookie: owner.cookie }), ctx()), { cleared: true });
+      expect(await sessionCount()).toBe(1);
+      await expect(requireUser(request("/x", { cookie: visitor.cookie }))).resolves.toMatchObject({ id: visitor.user.id });
+    });
+
+    it("demo mode keeps the other checks: signed out, unknown or expired sessions, Origin and JSON", async () => {
+      demoEnv();
+      const { cookie } = await demoSignedIn();
+      await expectNotSignedIn(await getMe(request("/api/me"), ctx()), { cleared: false });
+      await expectNotSignedIn(await getMe(request("/api/me", { cookie: `${SESSION}=junk` }), ctx()), { cleared: true });
+
+      const handler = vi.fn(() => ({ ok: true }));
+      for (const origin of ["https://evil.example", null]) {
+        const res = await route(handler)(request("/x", { method: "POST", cookie, origin, body: "{}" }), ctx());
+        expect(res.status).toBe(403);
+      }
+      const plain = await route(handler)(request("/x", { method: "POST", cookie, contentType: "text/plain", body: "{}" }), ctx());
+      expect(plain.status).toBe(403);
+      expect(handler).not.toHaveBeenCalled();
+      expect((await route(handler)(request("/x", { method: "POST", cookie, body: "{}" }), ctx())).status).toBe(200);
+
+      await testSql()`UPDATE sessions SET expires_at = now() - interval '1 minute'`;
+      await expectNotSignedIn(await getMe(request("/api/me", { cookie }), ctx()), { cleared: true });
+    });
+
+    it("locked mode lets nobody through, demo users neither, and keeps their sessions", async () => {
+      const { cookie } = await demoSignedIn();
+      for (const missing of ["GOOGLE_CLIENT_ID", "ALLOWED_EMAILS", "APP_URL"] as const) {
+        signedInEnv({ [missing]: "" });
+        await expectNotSignedIn(await getMe(request("/api/me", { cookie }), ctx()), { cleared: false });
+        expect(await authenticate(request("/x", { cookie }))).toEqual({ ok: false, clearCookie: false });
+      }
+      expect(await sessionCount()).toBe(1);
+    });
+
+    it("demo mode shuts the key routes: 401 even with a valid key, which stays", async () => {
+      const { user } = await signedIn();
+      const { token } = await createExtensionKey(user.id, "Chrome on Linux");
+      demoEnv();
+      const handler = vi.fn(() => ({ ok: true }));
+      const res = await route(handler, { auth: "extension" })(
+        request("/x", { origin: null, headers: { authorization: `Bearer ${token}` } }),
+        ctx(),
+      );
+      expect(res.status).toBe(401);
+      expect(res.headers.get("www-authenticate")).toBe("Bearer");
+      expect(handler).not.toHaveBeenCalled();
+      const [{ n }] = await testSql()<{ n: number }[]>`SELECT count(*)::int AS n FROM extension_keys`;
+      expect(n).toBe(1);
+    });
+  });
+
   describe("route(…, { auth: \"extension\" }): the extension's key routes", () => {
     /** The owner, signed in, with a key for one browser. */
     async function withKey() {
@@ -455,6 +549,16 @@ describeDb("route(): the check on every API handler", () => {
       expect(await keyCount()).toBe(0);
       signedInEnv();
       await expectKeyRefused(await getExtensionSession(fromExtension("/api/extension/session", { authorization }), ctx()));
+    });
+
+    it("answers 401 and deletes the key of a demo user (interlock 4)", async () => {
+      const { user } = await demoSignedIn();
+      signedInEnv({ ALLOWED_EMAILS: `owner@example.com,${user.email}` });
+      const { token } = await createExtensionKey(user.id, "Chrome on Linux");
+      await expectKeyRefused(
+        await getExtensionSession(fromExtension("/api/extension/session", { authorization: `Bearer ${token}` }), ctx()),
+      );
+      expect(await keyCount()).toBe(0);
     });
 
     it("answers 401 to everything in locked mode, even with a valid key, and keeps the key", async () => {

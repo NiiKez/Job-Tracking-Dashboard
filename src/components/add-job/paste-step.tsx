@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
+import { useDemo } from "@/hooks/use-demo";
 import { isSubmitShortcut, StepFooter, StepIndicator, SubmitShortcut } from "./dialog-parts";
 import { isLink } from "./job-form";
 
@@ -61,6 +62,8 @@ export function PasteStep({
 }) {
   const kind = detectInput(value);
   const canRead = !!value.trim() && !reading;
+  // The public demo opens no links: the server guesses from the link's own text (step 5).
+  const { demo } = useDemo();
 
   return (
     <>
@@ -105,8 +108,17 @@ export function PasteStep({
             className="max-h-[40vh] min-h-36 overflow-y-auto text-sm leading-relaxed read-only:opacity-70"
           />
           <FieldDescription id={`${inputId}-helper`} className="text-xs">
-            A link to the posting works best. If the site needs a login, or you found the job in an
-            email, copy the whole ad and paste the text instead.
+            {demo ? (
+              <>
+                The demo doesn&apos;t open links: it guesses the title and company from the link&apos;s
+                own text. Paste the whole ad to see every field filled in.
+              </>
+            ) : (
+              <>
+                A link to the posting works best. If the site needs a login, or you found the job in
+                an email, copy the whole ad and paste the text instead.
+              </>
+            )}
           </FieldDescription>
           {error && (
             <FieldError id={`${inputId}-error`} className="text-xs">

@@ -2,6 +2,10 @@ import { defineConfig, devices } from "@playwright/test";
 import {
   ALLOWED_EMAILS,
   BASE_URL,
+  DEMO_BASE_URL,
+  DEMO_PORT,
+  DEMO_SCHEMA,
+  demoDatabaseUrl,
   E2E_PORT,
   E2E_SCHEMA,
   e2eDatabaseUrl,
@@ -17,13 +21,19 @@ import {
 //
 // Needs TEST_DATABASE_URL (environment or .env.local) and Playwright's Chromium
 // (`npx playwright install chromium` once: the headless shell for most specs, and full Chromium
-// for the extension's). The run fails when the build is older than the source. E2E_PORT and
-// E2E_SCHEMA move the server, so two runs can share the machine.
+// for the extension's). The run fails when the build is older than the source. E2E_PORT,
+// E2E_DEMO_PORT and E2E_SCHEMA move the servers, so two runs can share the machine.
 //
 // Projects: `chromium` runs the web app's specs in the headless shell. `extension` runs
 // tests/e2e/extension/ in full Chromium (channel "chromium", new headless; the shell can't load
 // extensions) with the Chrome extension loaded, built for the run by `extension-build` first
-// (tests/e2e/extension/support/). Both use the one server below.
+// (tests/e2e/extension/support/). Both use the first server below. `demo` runs tests/e2e/demo/
+// in the headless shell against the second server: the same build started as the public demo
+// (DEMO_MODE=on, no Google values; docs/plan/5-public-demo.md) on E2E_DEMO_PORT (default
+// E2E_PORT + 1) and its own schema, E2E_SCHEMA + "_demo". The first server's DEMO_URL is the
+// demo's origin, so the real sign-in page links to it. Workspaces are made through the demo's
+// entry gate, 30 per minute per server: keep the demo specs' entries few
+// (tests/e2e/demo/support/demo.ts).
 
 const CI = !!process.env.CI;
 
@@ -52,7 +62,11 @@ export default defineConfig({
   // Hydration and the first API calls can take a few seconds on a busy machine or CI runner.
   expect: { timeout: 10_000 },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] }, testIgnore: "tests/e2e/extension/**" },
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
+      testIgnore: ["tests/e2e/extension/**", "tests/e2e/demo/**"],
+    },
     // Builds the e2e extension (extension/build.mjs --e2e) into this run's outputDir, once.
     { name: "extension-build", testDir: "./tests/e2e/extension", testMatch: "build.setup.ts" },
     {
@@ -65,25 +79,50 @@ export default defineConfig({
       // and the launchOptions above.
       use: { channel: "chromium", viewport: { width: 1280, height: 720 } },
     },
-  ],
-  webServer: {
-    command: "node tests/e2e/support/serve.mjs",
-    url: `${BASE_URL}/api/health`,
-    // Always a fresh server on a fresh schema: one left running from another run (or a dev server
-    // on the same port) would test the wrong build or the wrong data.
-    reuseExistingServer: false,
-    timeout: 120_000,
-    // The server's log (one line per inbox sync) only in CI, where it is the only record; its
-    // errors always show.
-    stdout: CI ? "pipe" : "ignore",
-    stderr: "pipe",
-    env: {
-      E2E_PORT: String(E2E_PORT),
-      E2E_SCHEMA,
-      E2E_DATABASE_URL: e2eDatabaseUrl(),
-      E2E_TEST_DATABASE_URL: testDatabaseUrl(),
-      E2E_ALLOWED_EMAILS: ALLOWED_EMAILS,
-      E2E_GOOGLE_CLIENT_ID: GOOGLE_CLIENT_ID,
+    {
+      name: "demo",
+      testDir: "./tests/e2e/demo",
+      testMatch: "**/*.spec.ts",
+      use: { ...devices["Desktop Chrome"], baseURL: DEMO_BASE_URL },
     },
-  },
+  ],
+  webServer: [
+    {
+      command: "node tests/e2e/support/serve.mjs",
+      url: `${BASE_URL}/api/health`,
+      // Always a fresh server on a fresh schema: one left running from another run (or a dev
+      // server on the same port) would test the wrong build or the wrong data.
+      reuseExistingServer: false,
+      timeout: 120_000,
+      // The server's log (one line per inbox sync) only in CI, where it is the only record; its
+      // errors always show.
+      stdout: CI ? "pipe" : "ignore",
+      stderr: "pipe",
+      env: {
+        E2E_PORT: String(E2E_PORT),
+        E2E_SCHEMA,
+        E2E_DATABASE_URL: e2eDatabaseUrl(),
+        E2E_TEST_DATABASE_URL: testDatabaseUrl(),
+        E2E_ALLOWED_EMAILS: ALLOWED_EMAILS,
+        E2E_GOOGLE_CLIENT_ID: GOOGLE_CLIENT_ID,
+        E2E_DEMO_URL: DEMO_BASE_URL,
+      },
+    },
+    {
+      // The public demo: DEMO_MODE=on, no Google values (serve.mjs, E2E_DEMO).
+      command: "node tests/e2e/support/serve.mjs",
+      url: `${DEMO_BASE_URL}/api/health`,
+      reuseExistingServer: false,
+      timeout: 120_000,
+      stdout: CI ? "pipe" : "ignore",
+      stderr: "pipe",
+      env: {
+        E2E_PORT: String(DEMO_PORT),
+        E2E_SCHEMA: DEMO_SCHEMA,
+        E2E_DATABASE_URL: demoDatabaseUrl(),
+        E2E_TEST_DATABASE_URL: testDatabaseUrl(),
+        E2E_DEMO: "on",
+      },
+    },
+  ],
 });

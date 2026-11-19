@@ -7,7 +7,8 @@ import { isSingleLink, parseText, parseUrl, toResult, type ParsedJobInput } from
 /**
  * The parse step of "Add job". Pasted text uses the heuristics only. A single link is
  * fetched and read; whatever the page does not give is filled from the link heuristics, and
- * any failure falls back to exactly what the heuristics give for that link.
+ * any failure falls back to exactly what the heuristics give for that link. With
+ * `fetchLink: false` the link is never fetched and the result is that fallback right away.
  */
 
 export type { ParsedJobInput };
@@ -15,6 +16,12 @@ export type { ParsedJobInput };
 export interface ParseOptions {
   /** Whose fetch budget this counts against: the signed-in user's id. Without one, a shared budget. */
   rateLimitKey?: string;
+  /**
+   * False: a link is not opened. Title, company and location come only from the link's own text
+   * (its host and path, text.ts parseUrl), exactly as when a fetch fails, with no request, no
+   * fetch budget used and no log line. Default true.
+   */
+  fetchLink?: boolean;
 }
 
 /** Test seams. Set only by code (tests); the default instance below uses none of them. */
@@ -39,6 +46,7 @@ export function createJobInputParser(deps: ParserDeps = {}) {
     if (!isSingleLink(trimmed)) return toResult(parseText(trimmed));
 
     const fromLink = parseUrl(trimmed);
+    if (opts.fetchLink === false) return toResult(fromLink);
     const fallback = (host: string, reason: string) => {
       log(`[parse] link not read: ${host || "-"} ${reason}`);
       return toResult(fromLink);

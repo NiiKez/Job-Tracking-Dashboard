@@ -378,8 +378,8 @@ describe("parseEnv in demo mode (DEMO_MODE=on)", () => {
     );
   });
 
-  // Interlock 2: the demo's database. The name is the path, URL-decoded, and any `database`
-  // query parameter, which postgres.js would send in its place.
+  // Interlock 2: the demo's database. The name is the path as it is (postgres.js does not decode
+  // it), and any `database` query parameter, which postgres.js would send in its place.
   it.each([
     "postgresql://app:pw-1234@localhost:5432/job_tracker_demo",
     "postgresql://app:pw-1234@localhost:5432/job_tracker_dev",
@@ -388,8 +388,10 @@ describe("parseEnv in demo mode (DEMO_MODE=on)", () => {
     "postgresql://app:pw-1234@db1:5432,db2:5433/job_tracker_demo",
     "postgresql://app:pw-1234@[::1]:5432/job_tracker_demo",
     "postgresql:///job_tracker_demo",
-    "postgresql://app@localhost/job%5Ftracker%5Fdemo",
     "postgresql://app@localhost/job_tracker_demo?database=other_demo",
+    // Query parameters are decoded, as postgres.js decodes them.
+    "postgresql://app@localhost/job_tracker_demo?database=other%5Fdemo",
+    "postgresql://app%2Ejt@localhost/job_tracker_demo?application_name=job%20tracker",
   ])("accepts a demo database: %s", (url) => {
     expect(parseEnv({ ...DEMO, DATABASE_URL: url }).databaseUrl).toBe(url);
   });
@@ -410,6 +412,14 @@ describe("parseEnv in demo mode (DEMO_MODE=on)", () => {
     // The query parameter wins in postgres.js, so it must be a demo database too.
     "postgresql://app:pw-1234@localhost:5432/job_tracker_demo?database=job_tracker",
     "postgresql://app:pw-1234@localhost:5432/job_tracker_demo?database=x_demo&database=job_tracker",
+    // The path is not decoded by postgres.js: this would connect to "job%5Ftracker%5Fdemo".
+    "postgresql://app@localhost/job%5Ftracker%5Fdemo",
+    // A NUL ends a field of the startup message, so it would smuggle in another `database`.
+    "postgresql://app@localhost/job_tracker_demo?database=job_tracker%00application_name%00x_demo",
+    "postgresql://app@localhost/job_tracker_demo?search_path=public%00database%00job_tracker",
+    "postgresql://app@localhost/job_tracker_demo?x%00database=y",
+    "postgresql://app%00database%00job_tracker@localhost/job_tracker_demo",
+    "postgresql://app@localhost/job_tracker_demo?application_name=a%0Ab",
   ])("refuses any other database without quoting the URL: %s", (url) => {
     const err = errorFor({ ...DEMO, DATABASE_URL: url });
     expect(err.variables).toEqual(["DATABASE_URL"]);

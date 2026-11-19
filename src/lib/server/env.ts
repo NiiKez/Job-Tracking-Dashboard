@@ -241,20 +241,27 @@ function readPostgresUrl(value: string): URL | null {
 const isPostgresUrl = (value: string) => readPostgresUrl(value) !== null;
 
 /**
- * Every database name in a DATABASE_URL ends in _demo, _dev or _test: the path (URL-decoded) and
- * any `database` query parameter, which postgres.js sends after the path's name, so it would win
- * (parseOptions and StartupMessage in postgres/src). No name at all is refused too: postgres.js
- * would fall back to PGDATABASE or the user name.
+ * Every database name in a DATABASE_URL ends in _demo, _dev or _test, read the way postgres.js
+ * reads it (parseOptions and StartupMessage in postgres/src):
+ *
+ * - the path as it is: postgres.js does not URL-decode it, so a `%` there would be part of the
+ *   name it sends, and a path with one is refused;
+ * - any `database` query parameter (decoded), which postgres.js sends after the path's name, so
+ *   it would win.
+ *
+ * No name at all is refused too: postgres.js would fall back to PGDATABASE or the user name. So
+ * is a control character in the user name or in any query parameter's key or value: postgres.js
+ * writes them decoded into the startup message, whose fields end at a NUL, so `%00` there would
+ * start a field of its own, such as a second `database`.
  */
 function isDemoDatabase(value: string): boolean {
   const url = readPostgresUrl(value);
   if (!url) return false;
-  try {
-    const names = [decodeURIComponent(url.pathname.slice(1)), ...url.searchParams.getAll("database")];
-    return names.every((name) => /_(demo|dev|test)$/.test(name));
-  } catch {
-    return false;
-  }
+  const sent = [decodeURIComponent(url.username), ...[...url.searchParams].flat()];
+  if (sent.some((s) => /\p{Cc}/u.test(s))) return false;
+  const path = url.pathname.slice(1);
+  if (path.includes("%")) return false;
+  return [path, ...url.searchParams.getAll("database")].every((name) => /_(demo|dev|test)$/.test(name));
 }
 
 const schema = z.object({

@@ -1,5 +1,6 @@
 # Deploy: after a PR is merged into main, run CI on the merged code, then ship that build to the
-# server. Can also be started by hand: Actions -> Deploy -> Run workflow (main only).
+# server: first the real app, then the public demo (the same build, run with DEMO_MODE=on).
+# Can also be started by hand: Actions -> Deploy -> Run workflow (main only, redeploys both).
 name: Deploy
 
 on:
@@ -47,6 +48,39 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           # On the server this key may only run "deploy <sha>", with the release on stdin.
           # The server switches over, health-checks, and rolls back by itself on failure.
+          ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o IdentitiesOnly=yes \
+              -o ConnectTimeout=20 -o ServerAliveInterval=15 \
+              "deploy@$DEPLOY_HOST" "deploy $GITHUB_SHA" < release.tgz
+
+  # The public demo gets the same build, after production. A failed production deploy skips it,
+  # and a failed demo deploy never touches production (the server rolls the demo back by itself).
+  deploy-demo:
+    name: deploy-demo
+    needs: [ci, deploy]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # The demo's own DEPLOY_* secrets live in the "demo" environment, main only. Its key may only
+    # deploy job-tracker-demo.
+    environment: demo
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release
+
+      - name: Ship the release to the demo
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          for s in DEPLOY_SSH_KEY DEPLOY_HOST DEPLOY_KNOWN_HOSTS; do
+            [ -n "${!s}" ] || { echo "::error::Secret $s is missing (Settings -> Environments -> demo)"; exit 1; }
+          done
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
           ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o IdentitiesOnly=yes \
               -o ConnectTimeout=20 -o ServerAliveInterval=15 \
               "deploy@$DEPLOY_HOST" "deploy $GITHUB_SHA" < release.tgz

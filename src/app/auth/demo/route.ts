@@ -13,6 +13,7 @@ const NO_STORE = { "Cache-Control": "no-store" };
 const ENTRY_PAGE = "/login/demo";
 // Not exported: a route file may export its methods only (Next checks the build's exports).
 const ENTRY_BUSY = `${ENTRY_PAGE}?error=busy`;
+const ENTRY_BUSY_KEPT = `${ENTRY_PAGE}?error=busy_kept`;
 const ENTRY_FAILED = `${ENTRY_PAGE}?error=failed`;
 
 /**
@@ -30,7 +31,9 @@ const ENTRY_FAILED = `${ENTRY_PAGE}?error=failed`;
  *   ("Start over": deleted in the same transaction as the new one is made).
  * - The workspace is created through the entry gate (one at a time, at most 10 waiting, 30 a
  *   minute: entry-gate.ts). A refusal of the gate or a full demo (createWorkspace's "busy")
- *   → 303 to /login/demo?error=busy, and the visitor's workspace, if any, stays as it was.
+ *   → 303 to /login/demo?error=busy, and the visitor's workspace, if any, stays as it was. When
+ *   there is one (a refused "Start over"), ?error=busy_kept instead: the entry page then says so
+ *   and links back to it.
  * - Success → 303 to / with the new session's Set-Cookie (same name as the old one, so it takes
  *   its place). No other cookie is set or cleared.
  * - Anything else that fails (the database) → logged, 303 to /login/demo?error=failed.
@@ -51,7 +54,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     const db = getDb();
     const replaceUserId = await currentDemoUserId(db, req);
     const result = await runEntry(() => createWorkspace(db, { replaceUserId }));
-    if (result === "busy" || !result.ok) return redirectTo(ENTRY_BUSY);
+    if (result === "busy" || !result.ok) return redirectTo(replaceUserId ? ENTRY_BUSY_KEPT : ENTRY_BUSY);
     return redirectTo("/", [result.setCookie]);
   } catch (err) {
     // As route() logs a 500. The visitor's workspace, if any, stays: the transaction rolled back.

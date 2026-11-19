@@ -71,13 +71,20 @@ describe("the privacy page", () => {
       expect(text).toContain("Please don't enter real personal data in it.");
     });
 
-    it("says what it stores: the workspace with what the visitor types, and a session cookie", () => {
+    it("says what it stores: the workspace with what the visitor types, a session cookie and the sidebar's", () => {
       expect(text).toMatch(/creates a workspace, a copy of the invented data plus whatever you type or change in it/);
       expect(text).toContain("sets a session cookie in your browser");
+      // src/components/ui/sidebar.tsx writes sidebar_state (max-age 7 days) when the sidebar folds.
+      expect(text).toContain("Folding the sidebar also sets a cookie that holds only that choice, for 7 days.");
     });
 
-    it("says it is deleted after 24 hours or when the visitor leaves", () => {
-      expect(text).toMatch(/deleted 24 hours after it was created, or at once when you choose .Leave the demo./);
+    it("says it is deleted after 24 hours at most, sooner when the demo is full, or when the visitor leaves", () => {
+      expect(text).toMatch(/deleted at most 24 hours after it was created, or at once when you choose .Leave the demo./);
+      expect(text).not.toMatch(/deleted 24 hours after/);
+      // src/lib/server/demo/workspaces.ts, EVICT_AFTER_SECONDS: one hour.
+      expect(text).toContain(
+        "When the demo is full, workspaces at least an hour old can be deleted sooner, oldest first, to make room.",
+      );
     });
 
     it("says it is shared with no one", () => {

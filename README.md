@@ -109,8 +109,9 @@ a production start, unless `APP_URL` is an http origin on `127.0.0.1`, `localhos
 
 The same build can run a second time as a public demo, switched on with `DEMO_MODE=on`. A
 visitor presses "Try the demo" and gets a private workspace of invented jobs and emails, which is
-deleted after 24 hours. "Sync now" files the invented mail from `fixtures/mail`, so the inbox
-works without Gmail. Google sign-in, Gmail and the timed inbox syncs are off.
+deleted after 24 hours at the latest (when the demo is full, workspaces older than an hour make
+room for new ones). "Sync now" files the invented mail from `fixtures/mail`, so the inbox works
+without Gmail. Google sign-in, Gmail and the timed inbox syncs are off.
 
 A demo needs three values and nothing else:
 

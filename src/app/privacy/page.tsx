@@ -19,10 +19,12 @@ export const metadata: Metadata = {
  *
  * The real app and the public demo are the same build, so both serve this page: every section
  * holds for both. The demo's section is written about the demo, whichever copy shows it. Its "14
- * days" is how long the server's web logs are kept (the runbook), not something the app sets.
+ * days" is how long the server's web logs are kept (the runbook), not something the app sets; its
+ * "7 days" is the sidebar cookie's max-age (src/components/ui/sidebar.tsx) and "an hour" is
+ * EVICT_AFTER_SECONDS (src/lib/server/demo/workspaces.ts).
  */
 
-const LAST_UPDATED = "2026-11-18";
+const LAST_UPDATED = "2026-11-19";
 
 const USER_DATA_POLICY = "https://developers.google.com/terms/api-services-user-data-policy";
 const GOOGLE_PERMISSIONS = "https://myaccount.google.com/permissions";
@@ -56,7 +58,7 @@ export default function PrivacyPage() {
 
         <h1 className="mt-6 text-2xl leading-9 font-semibold">Privacy policy</h1>
         <p className="mt-1 text-meta text-muted-foreground">
-          Last updated <time dateTime={LAST_UPDATED}>18 Nov 2026</time>
+          Last updated <time dateTime={LAST_UPDATED}>19 Nov 2026</time>
         </p>
 
         <Section title="What this app is">
@@ -147,12 +149,14 @@ export default function PrivacyPage() {
             <li>
               <strong className="font-semibold">What it stores:</strong> pressing &ldquo;Try the demo&rdquo; creates a
               workspace, a copy of the invented data plus whatever you type or change in it, and sets a session cookie
-              in your browser that ties the workspace to you.
+              in your browser that ties the workspace to you. Folding the sidebar also sets a cookie that holds only
+              that choice, for 7 days.
             </li>
             <li>
               <strong className="font-semibold">When it is deleted:</strong> the workspace, with everything in it, is
-              deleted 24 hours after it was created, or at once when you choose &ldquo;Leave the demo&rdquo;.
-              &ldquo;Start over&rdquo; deletes it and gives you a new one.
+              deleted at most 24 hours after it was created, or at once when you choose &ldquo;Leave the demo&rdquo;.
+              &ldquo;Start over&rdquo; deletes it and gives you a new one. When the demo is full, workspaces at least
+              an hour old can be deleted sooner, oldest first, to make room.
             </li>
             <li>
               <strong className="font-semibold">Who sees it:</strong> only the browser that holds the session cookie

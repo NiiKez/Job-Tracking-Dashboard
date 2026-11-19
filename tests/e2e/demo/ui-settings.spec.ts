@@ -1,8 +1,9 @@
 // What the public demo changes inside the pages (docs/plan/5-public-demo.md, "Step 7"): Settings
 // shows the Chrome extension as unavailable without asking the server about it, the Inbox has no
 // sync interval and says how the invented mail gets in, the add-job dialog says links aren't
-// opened, and a per-workspace cap's 409 reaches the visitor as the server worded it. Runs in the
-// `demo` project against a server with DEMO_MODE=on: 2 workspace entries in this file.
+// opened (and doesn't speak of "the page" for what a link left empty), and a per-workspace cap's
+// 409 reaches the visitor as the server worded it. Runs in the `demo` project against a server
+// with DEMO_MODE=on: 2 workspace entries in this file.
 import { expect, test, type Page } from "@playwright/test";
 import { DEMO_BASE_URL, enterDemo } from "./support/demo";
 
@@ -75,6 +76,15 @@ test("Add a job says links aren't opened, and a description over the demo's cap 
   await expect(paste.getByLabel("Job link or job text")).toHaveAccessibleDescription(
     "The demo doesn't open links: it guesses the title and company from the link's own text. Paste the whole ad to see every field filled in.",
   );
+  // A link is read from its own text only: a field it leaves empty doesn't say "on the page".
+  await paste.getByLabel("Job link or job text").fill("https://careers.brightmoor.invalid/jobs/77-qa-engineer");
+  await paste.getByRole("button", { name: "Read job" }).click();
+  const fromLink = page.getByRole("dialog", { name: "Check the details" });
+  await expect(fromLink.getByLabel("Location")).toHaveValue("");
+  await expect(fromLink.getByLabel("Location")).toHaveAccessibleDescription(
+    "Couldn't find this in what you pasted — please fill it in",
+  );
+  await fromLink.getByRole("button", { name: "Back" }).click();
   await paste.getByRole("button", { name: "Fill in manually" }).click();
 
   const review = page.getByRole("dialog", { name: "Check the details" });

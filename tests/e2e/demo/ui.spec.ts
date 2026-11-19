@@ -62,7 +62,9 @@ test("the banner says the data is invented, private to this browser, when it is 
   expect(left).toBeLessThanOrEqual(24 * 3_600_000 + 60_000);
 
   const notice = banner(page);
-  await expect(notice).toContainText("Demo with invented data, private to this browser and deleted");
+  await expect(notice).toContainText("Demo with invented data, private to this browser and deleted no later than");
+  // At the cap, workspaces an hour old make room for new ones (src/lib/server/demo/workspaces.ts).
+  await expect(notice).toContainText("(sooner if the demo gets very busy).");
   await expect(notice).toContainText("Don't enter real personal data.");
   // The deletion time in the browser's own time zone, the exact date and time as a tooltip.
   const time = notice.locator("time");

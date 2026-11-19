@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useDemo } from "@/hooks/use-demo";
 import { cn } from "@/lib/utils";
 import type { JobFieldName } from "./job-form";
 import type { JobFieldsState } from "./use-job-fields";
@@ -22,10 +23,16 @@ export function RequiredMark() {
 }
 
 function MissingHint({ id }: { id: string }) {
+  // The public demo opens no links: the parse only had the link's own text, or the pasted ad.
+  const { demo } = useDemo();
   return (
     <p id={id} className="flex items-start gap-1.5 text-xs leading-snug text-attention">
       <CircleAlert aria-hidden className="mt-px size-3.5 shrink-0" />
-      Couldn&apos;t find this on the page — please fill it in
+      {demo ? (
+        <>Couldn&apos;t find this in what you pasted — please fill it in</>
+      ) : (
+        <>Couldn&apos;t find this on the page — please fill it in</>
+      )}
     </p>
   );
 }

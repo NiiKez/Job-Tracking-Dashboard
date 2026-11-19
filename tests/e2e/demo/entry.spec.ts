@@ -57,7 +57,11 @@ test.describe("signed out", () => {
     await expect(page).toHaveTitle("Try the demo · Job Tracker");
     await expect(page.getByRole("heading", { level: 1, name: "Try the demo" })).toBeVisible();
     await expect(page.getByText("Explore the tracker with invented jobs and emails.")).toBeVisible();
-    await expect(page.getByText(/private to this browser and is deleted after 24 hours/)).toBeVisible();
+    await expect(
+      page.getByText(
+        "Your workspace is private to this browser. It is deleted when you leave, or after 24 hours at the latest (sooner if the demo gets very busy).",
+      ),
+    ).toBeVisible();
     await expect(page.getByText("Don't enter real personal data.")).toBeVisible();
     await expect(page.getByRole("link", { name: "Continue with Google" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Privacy" })).toHaveAttribute("href", "/privacy");
@@ -73,6 +77,15 @@ test.describe("signed out", () => {
     await page.goto(at("/login/demo?error=busy"));
     await expect(page.getByRole("main").getByRole("alert")).toHaveText("The demo is busy right now. Try again in a minute.");
     await expect(page.getByRole("button", { name: TRY_THE_DEMO })).toBeEnabled();
+  });
+
+  test("after a busy Start over, the entry page links back to the workspace instead", async ({ page }) => {
+    await page.goto(at("/login/demo?error=busy_kept"));
+    await expect(page.getByRole("main").getByRole("alert")).toHaveText(
+      "The demo is busy right now, so your workspace was not replaced.",
+    );
+    await expect(page.getByRole("link", { name: "Back to your workspace" })).toHaveAttribute("href", "/");
+    await expect(page.getByRole("button", { name: TRY_THE_DEMO })).toHaveCount(0);
   });
 
   test("search engines are told to stay away, and the API answers 401", async ({ page }) => {

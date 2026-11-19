@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronsUpDown, Loader2, LogOut, RotateCcw } from "lucide-react";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -128,10 +128,19 @@ function DemoItems({ onStartOver }: { onStartOver: () => void }) {
  * "Start over?" A plain form post to /auth/demo (no body), so the browser follows the server's
  * redirect: to / with a fresh workspace, or to the demo's entry page when the demo is full. The
  * submit button is not an AlertDialogAction: that closes the dialog on click, which would unmount
- * the form before the browser submits it.
+ * the form before the browser submits it. While it sends, it can't be closed or sent twice; that
+ * ends when the browser brings the page back from its history (bfcache), which also loads the
+ * page again (useReloadFromHistoryInDemo).
  */
 function StartOverDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const [pending, setPending] = useState(false);
+  useEffect(() => {
+    const reset = (event: PageTransitionEvent) => {
+      if (event.persisted) setPending(false);
+    };
+    window.addEventListener("pageshow", reset);
+    return () => window.removeEventListener("pageshow", reset);
+  }, []);
   return (
     <AlertDialog
       open={open}

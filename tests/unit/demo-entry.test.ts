@@ -37,6 +37,18 @@ describe("the demo's entry form", () => {
     expect(demoEntryError("something-else")).toBe("The demo couldn't start. Try again.");
   });
 
+  it("after a refused Start over (busy_kept), says the workspace stays and links back to it", () => {
+    const html = renderToStaticMarkup(createElement(DemoEntryActions, { error: "busy_kept" }));
+    expect(html).toContain('role="alert"');
+    expect(text(html)).toContain("The demo is busy right now, so your workspace was not replaced.");
+    expect(html).toMatch(/<a[^>]* href="\/"[^>]*>Back to your workspace<\/a>/);
+    // Not "Try the demo": pressing it would only try to replace the workspace again.
+    expect(html).not.toContain("<form");
+    expect(text(html)).not.toContain("Try the demo");
+    // The plain busy line keeps the form.
+    expect(renderToStaticMarkup(createElement(DemoEntryActions, { error: "busy" }))).toContain("<form");
+  });
+
   it("is a static page: no environment, no server code, the form in the Suspense fallback", () => {
     const source = readFileSync(path.resolve(__dirname, "../../src/app/login/demo/page.tsx"), "utf8");
     expect(source).not.toMatch(/process\.env|@\/lib\/server|searchParams|connection\(/);

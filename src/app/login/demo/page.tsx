@@ -31,7 +31,10 @@ export default function DemoEntryPage() {
         <h1 className="mt-6 text-section font-semibold">Try the demo</h1>
         <div className="mt-1 flex flex-col gap-2 text-sm text-pretty text-muted-foreground">
           <p>Explore the tracker with invented jobs and emails.</p>
-          <p>Your workspace is private to this browser and is deleted after 24 hours, or when you leave.</p>
+          <p>
+            Your workspace is private to this browser. It is deleted when you leave, or after 24 hours at the latest
+            (sooner if the demo gets very busy).
+          </p>
           <p>Don&apos;t enter real personal data.</p>
         </div>
         <div className="mt-6 flex flex-col gap-3">

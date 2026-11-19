@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useMe } from "@/lib/api/hooks";
 import type { Me } from "@/lib/types";
@@ -26,4 +27,23 @@ export function useDemo(): { settled: boolean; demo: DemoWorkspace | null } {
   const { data, isError } = useMe();
   if (!hydrated) return { settled: false, demo: null };
   return { settled: data !== undefined || isError, demo: data?.demo ?? null };
+}
+
+/**
+ * In the demo, a page the browser brings back from its history (bfcache) loads again. As it was
+ * left, it may belong to a workspace that is gone: Back after "Start over" or "Leave the demo"
+ * would show the old workspace's data, or the "Start over" dialog still sending. Loaded again,
+ * it shows the visitor's current workspace, or the entry page. Nothing in the real app.
+ * Called once, from a component every signed-in page has (DemoBanner).
+ */
+export function useReloadFromHistoryInDemo(): void {
+  const inDemo = useDemo().demo !== null;
+  useEffect(() => {
+    if (!inDemo) return;
+    const reload = (event: PageTransitionEvent) => {
+      if (event.persisted) window.location.reload();
+    };
+    window.addEventListener("pageshow", reload);
+    return () => window.removeEventListener("pageshow", reload);
+  }, [inDemo]);
 }

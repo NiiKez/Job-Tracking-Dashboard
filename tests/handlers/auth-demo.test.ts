@@ -32,6 +32,8 @@ const { POST: enter } = entryRoute;
 const SESSION = "__Host-jt_session";
 const HOME = `${APP_ORIGIN}/`;
 const BUSY = `${APP_ORIGIN}/login/demo?error=busy`;
+/** Busy, for a visitor in a live workspace ("Start over"): the entry page links back to it. */
+const BUSY_KEPT = `${APP_ORIGIN}/login/demo?error=busy_kept`;
 const FAILED = `${APP_ORIGIN}/login/demo?error=failed`;
 
 /** The entry form's post: a urlencoded body with nothing in it, from the app's own origin. */
@@ -220,9 +222,24 @@ describeDb("POST /auth/demo", () => {
       await insertBareDemoUsers(MAX_WORKSPACES);
       const before = await userCount();
 
-      expectRedirect(await enter(post({ cookie: visitor.cookie })), BUSY);
+      // Starting over: the busy page that says the workspace stays and links back to it.
+      expectRedirect(await enter(post({ cookie: visitor.cookie })), BUSY_KEPT);
       expectRedirect(await enter(post()), BUSY);
       expect(await userCount()).toBe(before);
+      expect(await userOfCookie(visitor.cookie)).toBe(visitor.user.id);
+    });
+
+    it("says busy_kept only for a live demo workspace: an expired, unknown or non-demo session gets busy", async () => {
+      const owner = await signedIn();
+      const expired = await demoSignedIn();
+      await testSql()`UPDATE sessions SET expires_at = now() - interval '1 minute' WHERE user_id = ${expired.user.id}`;
+      vi.mocked(createWorkspace).mockResolvedValue({ ok: false, reason: "busy" });
+
+      for (const cookie of [owner.cookie, expired.cookie, `${SESSION}=${"A".repeat(43)}`]) {
+        expectRedirect(await enter(post({ cookie })), BUSY);
+      }
+      const visitor = await demoSignedIn();
+      expectRedirect(await enter(post({ cookie: visitor.cookie })), BUSY_KEPT);
       expect(await userOfCookie(visitor.cookie)).toBe(visitor.user.id);
     });
 
@@ -262,7 +279,11 @@ describeDb("POST /auth/demo", () => {
       for (let i = 0; i < ENTRY_LIMITS.perMinute; i++) await enter(post());
       expect(createWorkspace).toHaveBeenCalledTimes(ENTRY_LIMITS.perMinute);
       expectRedirect(await enter(post()), BUSY);
+      // A visitor starting over, refused by the gate: their workspace stays, and the page says so.
+      const visitor = await demoSignedIn();
+      expectRedirect(await enter(post({ cookie: visitor.cookie })), BUSY_KEPT);
       expect(createWorkspace).toHaveBeenCalledTimes(ENTRY_LIMITS.perMinute);
+      expect(await userOfCookie(visitor.cookie)).toBe(visitor.user.id);
     });
 
     it("logs a failure and sends the visitor to the entry page with error=failed; their workspace stays", async () => {

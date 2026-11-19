@@ -2,6 +2,7 @@ import "server-only";
 import { getDb, type Db } from "@/lib/server/db/client";
 import { purgeExpiredWorkspaces } from "@/lib/server/demo/workspaces";
 import { getEnv, inboxTokenKeys, type Env } from "@/lib/server/env";
+import { isErrorNamed } from "@/lib/server/errors";
 import { deleteAllSeenBefore, LEDGER_DAYS } from "../repo";
 import { SWEEP_EVERY_MS, sweepableUserIds, sweepNoResponse } from "../sweep";
 import { runInboxCheck, stopAllSyncs } from "./engine";
@@ -57,7 +58,12 @@ import { errorCode } from "./ingest";
  *   3. The periodic sweep: every user the gate lets through (sweep.ts sweepableUserIds: never a
  *      user who has not connected an inbox) and not swept for SWEEP_EVERY_MS. The last sweep
  *      times live in memory: a new process sweeps every such user on its first tick, which keeps
- *      "at least every 6 hours" across restarts.
+ *      "at least every 6 hours" across restarts. Each tick forgets the times of users the gate no
+ *      longer lets through (deleted users too: the demo makes and purges them all day), so the
+ *      memory stays bounded; such a user is swept at once when it comes back.
+ *      In the demo, a sweep that a workspace's status-event cap refuses (demo/caps.ts, a
+ *      ConflictError) counts as done, without a warning: the workspace cannot take the change,
+ *      and trying it every minute until the workspace expires would only repeat the warning.
  *   4. The ledger clean-up, every LEDGER_CLEANUP_EVERY_MS (and on a new process's first tick):
  *      rows older than LEDGER_DAYS of every user, whatever the connection's status ("retry" rows
  *      a run looked at in that time excepted; repo.ts deleteAllSeenBefore). The engine also
@@ -152,8 +158,11 @@ interface Scheduler {
   deps: SchedulerDeps;
   /** The timed syncs run (steps 1 and 2); false: maintenance only. */
   syncs: boolean;
-  /** The public demo's purge runs (step 5): DEMO_MODE=on. */
-  purge: boolean;
+  /**
+   * The public demo (DEMO_MODE=on): the purge runs (step 5), and a sweep the status-event cap
+   * refuses counts as done (step 3).
+   */
+  demo: boolean;
   signals: SignalHost;
   onSignal: (signal: StopSignal) => void;
   timer: ReturnType<typeof setInterval> | null;
@@ -210,7 +219,7 @@ export function startInboxScheduler(opts: StartOptions = {}): StartResult {
   const s: Scheduler = {
     deps,
     syncs: syncsOff === null,
-    purge: env.demoMode,
+    demo: env.demoMode,
     signals,
     onSignal: (signal) => onStopSignal(s, signal),
     timer: null,
@@ -227,7 +236,7 @@ export function startInboxScheduler(opts: StartOptions = {}): StartResult {
   s.timer.unref();
   for (const signal of SIGNALS) signals.on(signal, s.onSignal);
   const every = `inbox: scheduler started, every ${TICK_MS / 1000} s`;
-  if (s.purge) {
+  if (s.demo) {
     deps.log(
       `${every}: no timed syncs (${syncsOff}), only the no-response sweep, the ledger clean-up and the purge of expired demo workspaces (every ${PURGE_EVERY_MS / 60_000} min)`,
     );
@@ -391,7 +400,11 @@ async function tick(s: Scheduler): Promise<void> {
 
     if (!s.stopped) {
       const now = deps.now().getTime();
-      for (const userId of await deps.sweepable(new Date(now))) {
+      const users = await deps.sweepable(new Date(now));
+      // Only the users let through now keep their time (step 3 at the top of this file).
+      const current = new Set(users);
+      for (const userId of s.lastSweep.keys()) if (!current.has(userId)) s.lastSweep.delete(userId);
+      for (const userId of users) {
         if (s.stopped) break;
         const last = s.lastSweep.get(userId);
         if (last !== undefined && now - last < SWEEP_EVERY_MS) continue;
@@ -403,7 +416,7 @@ async function tick(s: Scheduler): Promise<void> {
   }
   // Apart from the steps above: a failing due or gate query must not hold the clean-ups up.
   if (!s.stopped) await cleanLedger(s, counts);
-  if (s.purge && !s.stopped) await purgeWorkspaces(s, counts);
+  if (s.demo && !s.stopped) await purgeWorkspaces(s, counts);
   const line = summary(counts);
   const warn =
     counts.failed.length || counts.sweepFailed.length || counts.error || counts.cleanupFailed || counts.purgeFailed;
@@ -441,7 +454,10 @@ async function sweep(s: Scheduler, userId: string, counts: TickCounts): Promise<
     counts.marked += await s.deps.sweep(userId, now);
     s.lastSweep.set(userId, now.getTime());
   } catch (err) {
-    counts.sweepFailed.push(errorCode(err));
+    // The demo's status-event cap (step 3 at the top of this file), the only ConflictError a sweep
+    // can throw today. Still only in the demo, so that in the real app every failure is logged.
+    if (s.demo && isErrorNamed(err, "ConflictError")) s.lastSweep.set(userId, now.getTime());
+    else counts.sweepFailed.push(errorCode(err));
   }
 }
 

@@ -1,11 +1,13 @@
 import { EventEmitter } from "node:events";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { getDb } from "@/lib/server/db/client";
+import { DEMO_CAPS } from "@/lib/server/demo/caps";
 import { getEnv, parseEnv, type Env } from "@/lib/server/env";
 import { ensureDemoConnection } from "@/lib/server/inbox/repo";
 import { updateSettings } from "@/lib/server/services/settings";
 import type { MailSource } from "@/lib/server/inbox/source/types";
 import { runInboxCheck, type RunOptions } from "@/lib/server/inbox/sync/engine";
+import { sweepNoResponse } from "@/lib/server/inbox/sweep";
 import { inboxError } from "@/lib/server/inbox/sync/errors";
 import {
   nextDueUserId,
@@ -19,6 +21,7 @@ import {
 } from "@/lib/server/inbox/sync/scheduler";
 import { createUser, makeJob } from "../../helpers/factories";
 import { describeDb, testSql } from "../../helpers/test-db";
+import { stubDemoMode } from "../demo/support";
 import { connectionRow, demoUser, folderSource, NOW, restoreInboxEnv, stubInboxEnv } from "./support";
 
 // The scheduler on the real database and the real engine (fixture mail): the due query, a tick,
@@ -391,5 +394,27 @@ describeDb("the inbox scheduler", () => {
     expect(ids.sort()).toEqual([owner, live].sort());
     expect(ids).not.toContain(expired);
     expect(info).toHaveBeenCalledWith("demo: purged 1 expired workspace");
+  });
+
+  it("in demo mode, a workspace at the status-event cap is swept without a warning, then left for 6 hours", async () => {
+    vi.spyOn(console, "info").mockImplementation(() => {});
+    stubDemoMode(true); // the cap (demo/caps.ts) reads getEnv()
+    const user = await createUser();
+    await connection(user, { status: "disconnected" }); // the gate lets it through
+    const jobId = await quietJob(user);
+    await testSql()`
+      INSERT INTO job_status_events (user_id, job_id, from_status, to_status, source)
+      SELECT ${user}, ${jobId}, 'saved', 'applied', 'manual'
+      FROM generate_series(1, ${DEMO_CAPS.statusEvents - 1}::int)`;
+    const sweep = vi.fn(async (userId: string, now: Date) => (await sweepNoResponse(userId, { now })).length);
+    const lines = start({ env: getEnv(), expect: "maintenance_only", deps: { sync: vi.fn(), sweep } });
+
+    await runSchedulerTick();
+    await expect(sweep.mock.results[0].value).rejects.toThrow("at most 500 status changes");
+    await runSchedulerTick();
+    expect(sweep).toHaveBeenCalledTimes(1);
+    expect(await statusOf(jobId)).toBe("applied");
+    // The start line only: no warning.
+    expect(lines).toHaveLength(1);
   });
 });

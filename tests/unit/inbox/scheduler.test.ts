@@ -1,6 +1,7 @@
 import { EventEmitter } from "node:events";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { parseEnv, resetEnvForTests } from "@/lib/server/env";
+import { ConflictError } from "@/lib/server/errors";
 import { SWEEP_EVERY_MS } from "@/lib/server/inbox/sweep";
 import { inboxError } from "@/lib/server/inbox/sync/errors";
 import {
@@ -495,6 +496,31 @@ describe("a tick", () => {
     expect(h.deps.sweep).toHaveBeenCalledTimes(2);
   });
 
+  it("forgets the sweep times of users the gate no longer lets through, and sweeps one that comes back at once", async () => {
+    // The demo makes and purges users all day: the times of users that are gone must not pile up.
+    const users = Array.from({ length: 100 }, (_, i) => `user-${i}`);
+    let sweepable = users;
+    const h = harness();
+    h.deps.sweepable = vi.fn(async () => [...sweepable]);
+    startInboxScheduler({ deps: h.deps, env: FIXTURE, signals: fakeProcess().host });
+    const swept = () => vi.mocked(h.deps.sweep).mock.calls.map(([u]) => u);
+
+    await advance(TICK_MS);
+    expect(swept()).toEqual(users);
+    await advance(TICK_MS);
+    expect(swept()).toEqual(users);
+
+    // All but one leave (purged, or their inbox needs reconnecting): their times are dropped.
+    sweepable = ["user-0"];
+    await advance(TICK_MS);
+    expect(swept()).toHaveLength(100);
+    // Let through again within the 6 hours, they have no time left, so they are swept at once;
+    // user-0 kept its time and waits.
+    sweepable = users;
+    await advance(TICK_MS);
+    expect(swept().slice(100)).toEqual(users.slice(1));
+  });
+
   it("logs a failed query as a code and keeps ticking", async () => {
     const h = harness({ due: ["user-a"] });
     h.deps.nextDue = vi
@@ -649,6 +675,48 @@ describe("in demo mode", () => {
     await advance(TICK_MS);
     expect(h.deps.purgeWorkspaces).toHaveBeenCalledTimes(1);
     expect(warnings).toEqual(["inbox: scheduler: tick failed (57P01)"]);
+  });
+
+  it("counts a sweep the status-event cap refuses as done, without a warning", async () => {
+    // A workspace at its 500 status events with an overdue job: every sweep of it fails on the
+    // cap (demo/caps.ts). Retried and warned about every minute, it would fill the log for 24 hours.
+    const h = harness({ sweepable: ["user-x"] });
+    h.deps.sweep = vi
+      .fn()
+      .mockRejectedValue(new ConflictError("The demo allows at most 500 status changes. Delete a job or start over."));
+    const warnings: string[] = [];
+    h.deps.log = (line, level) => void (level === "warn" ? warnings : h.lines).push(line);
+    startInboxScheduler({ deps: h.deps, env: DEMO, signals: fakeProcess().host });
+
+    await advance(TICK_MS);
+    expect(h.deps.sweep).toHaveBeenCalledTimes(1);
+    await advance(SWEEP_EVERY_MS - TICK_MS);
+    expect(h.deps.sweep).toHaveBeenCalledTimes(1);
+    // Tried again 6 hours later, like any user.
+    await advance(TICK_MS);
+    expect(h.deps.sweep).toHaveBeenCalledTimes(2);
+    expect(warnings).toEqual([]);
+    expect(h.lines).toEqual([DEMO_STARTED]);
+  });
+
+  it("still warns about any other failed sweep, and outside demo mode about a ConflictError too", async () => {
+    const deadlock = Object.assign(new Error("deadlock"), { code: "40P01" });
+    for (const [env, err, code] of [
+      [DEMO, deadlock, "40P01"],
+      [FIXTURE, new ConflictError("conflict"), "ConflictError"],
+      [GMAIL, new ConflictError("conflict"), "ConflictError"],
+    ] as const) {
+      const h = harness({ sweepable: ["user-x"] });
+      h.deps.sweep = vi.fn().mockRejectedValue(err);
+      const warnings: string[] = [];
+      h.deps.log = (line, level) => void (level === "warn" ? warnings : h.lines).push(line);
+      startInboxScheduler({ deps: h.deps, env, signals: fakeProcess().host });
+      await advance(TICK_MS);
+      await advance(TICK_MS);
+      expect(h.deps.sweep).toHaveBeenCalledTimes(2);
+      expect(warnings).toEqual([`inbox: scheduler: sweep failed 1 (${code})`, `inbox: scheduler: sweep failed 1 (${code})`]);
+      resetSchedulerForTests();
+    }
   });
 
   it("never purges outside demo mode", async () => {

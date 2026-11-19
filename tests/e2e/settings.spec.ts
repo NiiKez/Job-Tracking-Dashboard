@@ -188,11 +188,20 @@ test.describe("automation", () => {
 test.describe("appearance", () => {
   const html = (page: Page) => page.locator("html");
 
+  test("Dark is the default, even on a light device", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    await openSettings(page);
+    const theme = settingsSection(page, "Appearance").getByRole("radiogroup", { name: "Theme" });
+    await expect(theme.getByRole("radio", { name: "Dark" })).toBeChecked();
+    await expect(html(page)).toHaveClass(/\bdark\b/);
+    expect(await page.evaluate(() => localStorage.getItem("theme"))).toBeNull();
+  });
+
   test("Light and Dark override the device and are kept after a reload", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "dark" });
     await openSettings(page);
     const theme = settingsSection(page, "Appearance").getByRole("radiogroup", { name: "Theme" });
-    await expect(theme.getByRole("radio", { name: "System" })).toBeChecked();
+    await expect(theme.getByRole("radio", { name: "Dark" })).toBeChecked();
     await expect(html(page)).toHaveClass(/\bdark\b/);
 
     await theme.getByRole("radio", { name: "Light" }).click();

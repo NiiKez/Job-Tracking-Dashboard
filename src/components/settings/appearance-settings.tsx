@@ -30,7 +30,7 @@ export function AppearanceSettings() {
           type="single"
           variant="outline"
           spacing={0}
-          value={hydrated ? (theme ?? "system") : ""}
+          value={hydrated ? (theme ?? "dark") : ""}
           onValueChange={(v) => v && setTheme(v)}
           aria-labelledby="theme-label"
         >

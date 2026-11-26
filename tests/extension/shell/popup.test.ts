@@ -287,6 +287,16 @@ describe("priority", () => {
     await settle();
     expect(saved(api)).toMatchObject({ priority: "high" });
   });
+
+  it("on a known job, a priority picked in an earlier opening wins over the stored one", async () => {
+    const duplicate = { ...job, status: "saved", priority: "low", history: [], appliedAt: null, createdAt: "2026-11-02T10:00:00Z", updatedAt: "2026-11-02T10:00:00Z" } as Job;
+    const api = savingApi();
+    render(editor(api, { ...filled(), duplicateOf: duplicate, chosenPriority: "high" }));
+    expect(checked()).toBe("High");
+    await act(async () => button("Save")!.click());
+    await settle();
+    expect(saved(api)).toMatchObject({ priority: "high" });
+  });
 });
 
 describe("focus and announcements", () => {

@@ -2,9 +2,11 @@
 
 import type { DraggableAttributes, DraggableSyntheticListeners } from "@dnd-kit/core";
 import { CalendarDays, Clock } from "lucide-react";
+import { PriorityMark } from "@/components/jobs/priority";
 import { Button } from "@/components/ui/button";
 import { formatDate, formatDateTime, formatWhen } from "@/lib/format";
 import { sentAt } from "@/lib/overview";
+import { priorityNote } from "@/lib/priority";
 import {
   daysWaiting,
   isFollowUpDue,
@@ -120,13 +122,22 @@ export function JobCard({
           job={job}
           dnd={dnd}
           onOpen={onOpen}
-          label={`${job.company}, ${job.title}. ${stageSignal(job).text}`}
+          label={`${job.company}, ${job.title}. ${priorityNote(job.priority)}${stageSignal(job).text}`}
           className="rounded-lg"
         />
       )}
 
-      <h4 className="truncate pr-6 text-sm leading-5 font-semibold" title={job.company}>
-        {job.company}
+      <h4 className="flex min-w-0 items-center gap-1.5 pr-6 text-sm leading-5 font-semibold">
+        <span className="truncate" title={job.company}>
+          {job.company}
+        </span>
+        {/* Above the open-button so its tooltip can be hovered; a click still opens the job. */}
+        <PriorityMark
+          priority={job.priority}
+          tooltip={!overlay}
+          className="relative z-10"
+          onClick={overlay ? undefined : () => onOpen?.(job.id)}
+        />
       </h4>
       <p className="mt-0.5 truncate text-meta" title={job.title}>
         {job.title}

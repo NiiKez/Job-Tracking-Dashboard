@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useJobs, useReviewEmails, useSettings, useStats } from "@/lib/api/hooks";
+import { PRIORITIES, type Job, type Priority } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { BoardSkeleton, BoardView } from "./board-view";
@@ -13,7 +14,7 @@ import { JobSheet } from "./job-sheet";
 import { KpiRow } from "./kpi-row";
 import { ListSkeleton, ListView } from "./list-view";
 import { ReviewBanner } from "./review-banner";
-import { ListControls, SearchField, ViewToggle } from "./toolbar";
+import { PipelineControls, SearchField, ViewToggle } from "./toolbar";
 import { useDashboardParams } from "./use-dashboard-params";
 
 /**
@@ -26,12 +27,15 @@ export function Dashboard() {
   const {
     q,
     statuses,
+    priorities,
     view,
     sort,
     jobId,
     setParams,
     setStatuses,
     toggleStatus,
+    setPriorities,
+    togglePriority,
     setView,
     setSort,
     openJob,
@@ -64,13 +68,22 @@ export function Dashboard() {
   const settingsData = hydrated ? settings.data : undefined;
   const noResponseDays = settingsData?.noResponseDays ?? 30;
 
-  const hasFilters = q !== "" || activeStatuses.length > 0;
+  const hasFilters = q !== "" || activeStatuses.length > 0 || priorities.length > 0;
   const clearFilters = () => {
     setSearch("");
-    setParams({ q: null, status: null });
+    setParams({ q: null, status: null, priority: null });
   };
 
-  const data = hydrated ? jobs.data : undefined;
+  // Priority is filtered here, on the jobs the server returned for the search and statuses.
+  const fetched = hydrated ? jobs.data : undefined;
+  const data = useMemo(
+    () =>
+      fetched && priorities.length
+        ? fetched.filter((j) => priorities.includes(j.priority))
+        : fetched,
+    [fetched, priorities],
+  );
+  const priorityCounts = useMemo(() => countPriorities(allJobs), [allJobs]);
   const stale = jobs.isPlaceholderData || search.trim() !== q;
   const failed = !data && hydrated && jobs.isError;
   const empty = data?.length === 0 && !hasFilters && !jobs.isPlaceholderData;
@@ -89,10 +102,17 @@ export function Dashboard() {
   } else if (empty) {
     body = <EmptyDashboard />;
   } else if (data.length === 0) {
-    body = <NoResults q={q} statuses={activeStatuses} onClear={clearFilters} />;
+    body = (
+      <NoResults q={q} statuses={activeStatuses} priorities={priorities} onClear={clearFilters} />
+    );
   } else if (view === "board") {
     body = (
-      <BoardView jobs={data} onOpen={openJob} filtered={q !== ""} noResponseDays={noResponseDays} />
+      <BoardView
+        jobs={data}
+        onOpen={openJob}
+        filtered={q !== "" || priorities.length > 0}
+        noResponseDays={noResponseDays}
+      />
     );
   } else {
     body = <ListView jobs={data} sort={sort} onOpen={openJob} />;
@@ -121,12 +141,17 @@ export function Dashboard() {
         )}
 
         <section aria-label="All applications" className="flex min-w-0 flex-col gap-3">
-          {view === "list" && (
-            <ListControls
+          {!failed && !empty && total !== 0 && (
+            <PipelineControls
+              view={view}
               statuses={statuses}
-              counts={statsData?.byStatus}
+              statusCounts={statsData?.byStatus}
               onToggleStatus={toggleStatus}
               onClearStatuses={() => setStatuses([])}
+              priorities={priorities}
+              priorityCounts={priorityCounts}
+              onTogglePriority={togglePriority}
+              onClearPriorities={() => setPriorities([])}
               sort={sort}
               onSortChange={setSort}
               hasFilters={hasFilters}
@@ -146,4 +171,11 @@ export function Dashboard() {
       <JobSheet jobId={jobId} onClose={closeJob} />
     </div>
   );
+}
+
+function countPriorities(jobs: Job[] | undefined): Record<Priority, number> | undefined {
+  if (!jobs) return undefined;
+  const out = Object.fromEntries(PRIORITIES.map((p) => [p, 0])) as Record<Priority, number>;
+  for (const j of jobs) out[j.priority] += 1;
+  return out;
 }

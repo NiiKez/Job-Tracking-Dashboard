@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import { DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StatusBadge } from "@/components/jobs/status-badge";
 import { STATUS_META } from "@/lib/status";
-import type { Job } from "@/lib/types";
+import type { Job, Priority } from "@/lib/types";
 import { isSubmitShortcut, StepFooter, StepIndicator, SubmitShortcut } from "./dialog-parts";
 import { JobFields } from "./job-fields";
 import type { JobFieldName, JobFieldValues, JobPayload } from "./job-form";
+import { PriorityChoice } from "./priority-choice";
 import { StatusChoice, type CaptureStatus } from "./status-choice";
 import { useJobFields } from "./use-job-fields";
 
@@ -44,7 +45,7 @@ function DuplicateNotice({ job, onOpen }: { job: Job; onOpen: () => void }) {
 }
 
 /**
- * Step 2: check the fields, pick Saved or Applied, save. Owns its own form
+ * Step 2: check the fields, pick Saved or Applied and a priority, save. Owns its own form
  * state; the dialog re-mounts it (new key) for every read.
  */
 export function ReviewStep({
@@ -53,6 +54,8 @@ export function ReviewStep({
   duplicateOf,
   status,
   onStatusChange,
+  priority,
+  onPriorityChange,
   onBack,
   onSubmit,
   onOpenDuplicate,
@@ -63,6 +66,8 @@ export function ReviewStep({
   duplicateOf: Job | null;
   status: CaptureStatus;
   onStatusChange: (s: CaptureStatus) => void;
+  priority: Priority;
+  onPriorityChange: (p: Priority) => void;
   onBack: () => void;
   onSubmit: (payload: JobPayload) => void;
   onOpenDuplicate: () => void;
@@ -119,6 +124,7 @@ export function ReviewStep({
           {duplicateOf && <DuplicateNotice job={duplicateOf} onOpen={onOpenDuplicate} />}
           <JobFields form={form} missing={missing} collapseLongDescription autoFocus={focusField} />
           <StatusChoice value={status} onChange={onStatusChange} idPrefix={statusId} />
+          <PriorityChoice value={priority} onChange={onPriorityChange} idPrefix={statusId} />
         </div>
 
         <StepFooter>

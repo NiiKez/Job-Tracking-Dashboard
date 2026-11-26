@@ -1,4 +1,5 @@
 import type { JobFieldValues } from "@/components/add-job/job-form";
+import { PRIORITIES, type Priority } from "@/lib/types";
 
 /*
  * What the extension remembers.
@@ -10,8 +11,9 @@ import type { JobFieldValues } from "@/components/add-job/job-form";
  * chrome.storage.session (memory only, gone when the browser quits; content scripts can't read it):
  *   connect      the Connect flow in progress. The service worker is stopped when idle, so this
  *                cannot live in a variable: the tab it opened, and the origin it is for.
- *   draft:<tab>  edits made in the popup for the page in that tab, so closing the popup (Escape,
- *                a click outside) doesn't lose them. Cleared after saving and when the tab closes.
+ *   draft:<tab>  edits made in the popup for the page in that tab (fields, and a priority picked),
+ *                so closing the popup (Escape, a click outside) doesn't lose them. Cleared after
+ *                saving and when the tab closes.
  *
  * Values read back are checked, not trusted: an older version may have written another shape.
  */
@@ -96,7 +98,12 @@ export interface Draft {
   url: string;
   /** Only the fields the user changed from what the tracker read. */
   edits: Partial<JobFieldValues>;
+  /** The priority the user picked; absent when they picked none. */
+  priority?: Priority;
 }
+
+/** What a draft brings back to the form. */
+export type DraftEdits = Omit<Draft, "url">;
 
 const draftKey = (tabId: number) => `draft:${tabId}`;
 
@@ -107,20 +114,22 @@ function isDraft(value: unknown): value is Draft {
     isString(d.url) &&
     typeof d.edits === "object" &&
     d.edits !== null &&
-    Object.values(d.edits).every(isString)
+    Object.values(d.edits).every(isString) &&
+    (d.priority === undefined || (PRIORITIES as readonly unknown[]).includes(d.priority))
   );
 }
 
 /** The edits for this tab, when they were made on the page it shows now. */
-export async function readDraft(tabId: number, url: string): Promise<Draft["edits"] | null> {
+export async function readDraft(tabId: number, url: string): Promise<DraftEdits | null> {
   const key = draftKey(tabId);
   const { [key]: draft } = await chrome.storage.session.get(key);
-  return isDraft(draft) && draft.url === url ? draft.edits : null;
+  if (!isDraft(draft) || draft.url !== url) return null;
+  return draft.priority ? { edits: draft.edits, priority: draft.priority } : { edits: draft.edits };
 }
 
 export async function saveDraft(tabId: number, draft: Draft) {
   const key = draftKey(tabId);
-  if (Object.keys(draft.edits).length === 0) await chrome.storage.session.remove(key);
+  if (Object.keys(draft.edits).length === 0 && !draft.priority) await chrome.storage.session.remove(key);
   else await chrome.storage.session.set({ [key]: draft });
 }
 

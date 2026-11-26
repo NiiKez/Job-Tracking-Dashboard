@@ -16,7 +16,7 @@ import {
 } from "@/components/add-job/job-form";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useCreateJob, useParseJob } from "@/lib/api/hooks";
-import type { Job, ParseResult } from "@/lib/types";
+import { DEFAULT_PRIORITY, type Job, type ParseResult, type Priority } from "@/lib/types";
 import type { AddJobOptions } from "./add-job-provider";
 
 interface ReviewState {
@@ -57,7 +57,7 @@ function fromParse(r: ParseResult): Omit<ReviewState, "key"> {
 
 /**
  * Global "Add job" dialog: paste a link or job text → check the fields →
- * save as Saved or Applied. Rendered by AddJobProvider with a fresh key on
+ * save as Saved or Applied, with a priority (Medium unless picked). Rendered by AddJobProvider with a fresh key on
  * every open, so all state below starts clean.
  */
 export function AddJobDialog({
@@ -77,11 +77,14 @@ export function AddJobDialog({
   const [step, setStep] = useState<"paste" | "review">("paste");
   const [input, setInput] = useState(options.input ?? "");
   const [status, setStatus] = useState<CaptureStatus>(options.status ?? "saved");
+  const [priority, setPriority] = useState<Priority>(DEFAULT_PRIORITY);
   const [review, setReview] = useState<ReviewState | null>(null);
   const [readError, setReadError] = useState<string | null>(null);
 
   const showReview = (next: Omit<ReviewState, "key">) => {
     setReview((prev) => ({ ...next, key: (prev?.key ?? 0) + 1 }));
+    // A job that is already tracked keeps its priority unless the user picks another.
+    setPriority(next.duplicateOf?.priority ?? DEFAULT_PRIORITY);
     setStep("review");
   };
 
@@ -115,7 +118,7 @@ export function AddJobDialog({
   const save = (payload: JobPayload) => {
     if (create.isPending) return;
     create.mutate(
-      { ...payload, status, captureMethod: "paste" },
+      { ...payload, status, priority, captureMethod: "paste" },
       {
         onSuccess: ({ job, duplicate }) => {
           const title = duplicate
@@ -153,6 +156,8 @@ export function AddJobDialog({
             duplicateOf={review.duplicateOf}
             status={status}
             onStatusChange={setStatus}
+            priority={priority}
+            onPriorityChange={setPriority}
             onBack={() => setStep("paste")}
             onSubmit={save}
             onOpenDuplicate={() => onOpenChange(false)}

@@ -24,6 +24,7 @@ function job(id: string, company: string, title: string, status: Status, patch: 
     url: null,
     description: "",
     status,
+    priority: "medium",
     statusSource: "email",
     statusLocked: false,
     captureMethod: "email",

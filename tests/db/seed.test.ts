@@ -137,6 +137,23 @@ describeDb("db:seed", () => {
     }
   });
 
+  it("writes each fixture's priority, for jobs found in mail too", async () => {
+    const user = await createUser();
+    await withTx((tx) => seedUser(tx, user, NOW));
+    const rows = await testSql()<{ title: string; url: string | null; priority: string }[]>`
+      SELECT title, url, priority FROM jobs WHERE user_id = ${user}`;
+    const seed = buildSeed(NOW);
+    expect(new Set(rows.map((r) => r.priority))).toEqual(new Set(["high", "medium", "low"]));
+    for (const job of seed.jobs) {
+      const row = rows.find((r) => r.url === job.url && r.title === job.title)!;
+      expect(row.priority, job.company).toBe(job.priority);
+    }
+    // Atlas Freight is created from a confirmation email, a path that starts at the default.
+    const atlas = seed.jobs.find((j) => j.company === "Atlas Freight")!;
+    expect(atlas.history[0].emailId).toBeTruthy();
+    expect(atlas.priority).not.toBe("medium");
+  });
+
   it("dates everything relative to now", async () => {
     const user = await createUser();
     const now = Date.now();

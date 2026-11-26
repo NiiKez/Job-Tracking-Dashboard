@@ -20,6 +20,7 @@
   --primary-foreground: #fafafa;
   --kbd-on-primary: rgb(255 255 255 / 0.2);
   --surface-sunken: #fafafa;
+  --segment-checked: #ffffff;
   --attention: #c2410c;
   --attention-subtle: #fff3eb;
   --destructive: #dc2626;
@@ -43,6 +44,7 @@
     --primary-foreground: #141414;
     --kbd-on-primary: rgb(0 0 0 / 0.12);
     --surface-sunken: #101010;
+    --segment-checked: #2e2e2e;
     --attention: #fb923c;
     --attention-subtle: rgb(251 146 60 / 0.13);
     --destructive: #f87171;
@@ -447,6 +449,93 @@ kbd {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+}
+
+/* The priority, above Save and Applied: a label, and three options in a track. */
+.priority {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.priority-label {
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 500;
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  flex: 0 1 236px;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--muted);
+}
+
+.segment {
+  position: relative;
+  display: flex;
+  min-width: 0;
+}
+
+/* The native radio stays in place (Chrome's keys and the click area), unseen; the face shows it. */
+.segment input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.segment-face {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  pointer-events: none;
+  transition:
+    background-color 0.15s,
+    color 0.15s,
+    box-shadow 0.15s;
+}
+
+.segment-face svg {
+  width: 14px;
+  height: 14px;
+}
+
+.segment:hover .segment-face {
+  color: var(--foreground);
+}
+
+.segment input:checked + .segment-face {
+  background: var(--segment-checked);
+  color: var(--foreground);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.08),
+    0 0 0 1px var(--border);
+}
+
+/* High stands out once picked: its arrows in the accent. */
+.segment[data-priority="high"] input:checked + .segment-face svg {
+  color: var(--attention);
+}
+
+.segment input:focus-visible + .segment-face {
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--ring) 60%, transparent);
 }
 
 /* The footer continues the bar: one hairline above both. */

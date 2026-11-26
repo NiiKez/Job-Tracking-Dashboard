@@ -22,6 +22,7 @@ const stored: Job = {
   url: null,
   description: "",
   status: "applied",
+  priority: "high",
   statusSource: "manual",
   statusLocked: false,
   captureMethod: "paste",
@@ -127,6 +128,7 @@ describe("readJob", () => {
       missing: ["location"],
       duplicateOf: null,
       notice: null,
+      chosenPriority: null,
     });
   });
 
@@ -143,6 +145,24 @@ describe("readJob", () => {
       description: "Build the product with us.",
     });
     expect(outcome.values).toEqual({ ...outcome.initial, company: "Acme Group" });
+    expect(outcome.chosenPriority).toBeNull();
+  });
+
+  it("brings back the priority picked in an earlier opening on this page", async () => {
+    read.mockResolvedValue({ ...parsed, duplicateOf: stored });
+    await chromeApi.storage.session.set({ "draft:7": { url: PAGE_URL, edits: {}, priority: "low" } });
+    const outcome = await readJob(api, tab);
+    expect(outcome.chosenPriority).toBe("low");
+    expect(outcome.values).toEqual(outcome.initial);
+  });
+
+  it("checks the job input's priority against the schema: optional, and only the three levels", () => {
+    const base = { title: "Engineer", company: "Acme", status: "saved" };
+    expect(extensionJobInputSchema.safeParse(base).success).toBe(true);
+    for (const priority of ["high", "medium", "low"]) {
+      expect(extensionJobInputSchema.safeParse({ ...base, priority }).success).toBe(true);
+    }
+    expect(extensionJobInputSchema.safeParse({ ...base, priority: "urgent" }).success).toBe(false);
   });
 
   it("ignores a draft made on another page in the same tab", async () => {

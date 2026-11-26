@@ -55,7 +55,7 @@ describe("drafts", () => {
 
   it("come back for the same tab and page only", async () => {
     await saveDraft(7, { url, edits: { title: "Staff Engineer" } });
-    await expect(readDraft(7, url)).resolves.toEqual({ title: "Staff Engineer" });
+    await expect(readDraft(7, url)).resolves.toEqual({ edits: { title: "Staff Engineer" } });
     await expect(readDraft(7, "https://jobs.example.com/2")).resolves.toBeNull();
     await expect(readDraft(8, url)).resolves.toBeNull();
   });
@@ -66,8 +66,15 @@ describe("drafts", () => {
     expect(chromeApi.storage.session.dump()).toEqual({});
   });
 
+  it("keep a priority picked, even with no field edited", async () => {
+    await saveDraft(7, { url, edits: {}, priority: "high" });
+    await expect(readDraft(7, url)).resolves.toEqual({ edits: {}, priority: "high" });
+  });
+
   it("are ignored when malformed", async () => {
     await chromeApi.storage.session.set({ "draft:7": { url, edits: { title: 1 } } });
+    await expect(readDraft(7, url)).resolves.toBeNull();
+    await chromeApi.storage.session.set({ "draft:7": { url, edits: {}, priority: "urgent" } });
     await expect(readDraft(7, url)).resolves.toBeNull();
   });
 });

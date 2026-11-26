@@ -21,6 +21,7 @@ import {
   writeJobStatus,
   type JobFields,
 } from "@/lib/server/repo/jobs";
+import { DEFAULT_PRIORITY } from "@/lib/types";
 import type {
   CaptureMethod,
   ChangeSource,
@@ -28,6 +29,7 @@ import type {
   Job,
   JobInput,
   JobWithEmails,
+  Priority,
   Status,
   StatusEvent,
   UpsertResult,
@@ -137,7 +139,7 @@ async function assembleJobs(db: Db, userId: string, rows: JobRow[]): Promise<Job
 
 /**
  * Adds a job, or updates the one it duplicates (same link, else same company and title).
- * A duplicate takes the new fields where given, the longer description, and moves forward from
+ * A duplicate takes the new fields where given (priority too), the longer description, and moves forward from
  * "saved" to "applied" only; it never moves back from a later stage.
  */
 export async function upsertJob(userId: string, input: JobInput): Promise<UpsertResult> {
@@ -156,6 +158,7 @@ export async function upsertJob(userId: string, input: JobInput): Promise<Upsert
         url: input.url || null,
         description: input.description,
         status: input.status,
+        priority: input.priority,
         source: input.captureMethod,
         captureMethod: input.captureMethod,
       });
@@ -168,6 +171,7 @@ export async function upsertJob(userId: string, input: JobInput): Promise<Upsert
       company: input.company || existing.company,
       location: input.location || existing.location,
       url: input.url || existing.url,
+      priority: input.priority ?? existing.priority,
       description:
         input.description && input.description.length > existing.description.length
           ? input.description
@@ -191,6 +195,7 @@ export type JobPatch = Partial<
     | "url"
     | "description"
     | "status"
+    | "priority"
     | "statusLocked"
     | "nextInterview"
     | "offerDeadline"
@@ -225,6 +230,7 @@ export async function updateJob(userId: string, jobId: string, patch: JobPatch):
     if (patch.offerDeadline !== undefined) {
       fields.offerDeadline = patch.offerDeadline ? toDate(patch.offerDeadline, "offerDeadline") : null;
     }
+    if (patch.priority !== undefined) fields.priority = patch.priority;
     if (typeof patch.statusLocked === "boolean") fields.statusLocked = patch.statusLocked;
     await saveFields(tx, userId, row.id, { ...fields, keys: jobKeys(fields) });
 
@@ -273,6 +279,8 @@ interface NewJob {
   url: string | null;
   description: string;
   status: Status;
+  /** Default DEFAULT_PRIORITY. */
+  priority?: Priority;
   source: ChangeSource;
   captureMethod: CaptureMethod;
   /** When it happened: created_at, applied_at, last_activity_at and the event. Default now(). */
@@ -299,6 +307,7 @@ async function createJob(tx: Tx, userId: string, job: NewJob): Promise<JobRow> {
     description: job.description,
     keys: jobKeys(job),
     status: job.status,
+    priority: job.priority ?? DEFAULT_PRIORITY,
     statusSource: job.source,
     captureMethod: job.captureMethod,
     at,

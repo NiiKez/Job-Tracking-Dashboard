@@ -2,7 +2,8 @@
 
 import { useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useSyncExternalStore } from "react";
-import { STATUSES, type Status } from "@/lib/types";
+import { parsePriorities } from "@/lib/priority";
+import { PRIORITIES, STATUSES, type Priority, type Status } from "@/lib/types";
 
 export type DashboardView = "board" | "list";
 export type ListSort = "next" | "activity" | "added" | "company";
@@ -60,11 +61,13 @@ function toSearch(params: URLSearchParams) {
   return qs ? `?${qs}` : "";
 }
 
-type ParamPatch = Partial<Record<"q" | "status" | "view" | "sort" | "job", string | null>>;
+type ParamPatch = Partial<
+  Record<"q" | "status" | "priority" | "view" | "sort" | "job", string | null>
+>;
 
 /**
  * Dashboard state that lives in the URL:
- * `?q=…&status=applied,interview&view=board|list&sort=activity|added|company&job=<id>`.
+ * `?q=…&status=applied,interview&priority=high,low&view=board|list&sort=activity|added|company&job=<id>`.
  *
  * The board is the default view; the last view the user picked is remembered.
  *
@@ -78,6 +81,8 @@ export function useDashboardParams() {
   const q = (searchParams.get("q") ?? "").trim();
   const statusRaw = searchParams.get("status");
   const statuses = useMemo(() => parseStatuses(statusRaw), [statusRaw]);
+  const priorityRaw = searchParams.get("priority");
+  const priorities = useMemo(() => parsePriorities(priorityRaw), [priorityRaw]);
   const viewParam = searchParams.get("view");
   const view: DashboardView =
     viewParam === "board" || viewParam === "list" ? viewParam : (storedView ?? "board");
@@ -112,6 +117,25 @@ export function useDashboardParams() {
     [statuses, setStatuses],
   );
 
+  const setPriorities = useCallback(
+    (next: Priority[]) => {
+      const ordered = PRIORITIES.filter((p) => next.includes(p));
+      setParams({ priority: ordered.length ? ordered.join(",") : null });
+    },
+    [setParams],
+  );
+
+  const togglePriority = useCallback(
+    (priority: Priority) => {
+      setPriorities(
+        priorities.includes(priority)
+          ? priorities.filter((p) => p !== priority)
+          : [...priorities, priority],
+      );
+    },
+    [priorities, setPriorities],
+  );
+
   const setView = useCallback(
     (next: DashboardView) => {
       writeStoredView(next);
@@ -131,12 +155,15 @@ export function useDashboardParams() {
   return {
     q,
     statuses,
+    priorities,
     view,
     sort,
     jobId,
     setParams,
     setStatuses,
     toggleStatus,
+    setPriorities,
+    togglePriority,
     setView,
     setSort,
     openJob,

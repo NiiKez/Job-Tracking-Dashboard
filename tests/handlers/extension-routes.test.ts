@@ -324,6 +324,27 @@ describeDb("the extension's API on the database", () => {
     }
   });
 
+  it("POST /api/extension/jobs: a priority from the popup, kept by a later save without one", async () => {
+    const { token } = await connect();
+    const input = { title: "Platform Engineer", company: "Kettle & Co", url: "https://kettle.example.com/jobs/8", status: "saved" };
+    const created = await ok<UpsertResult>(
+      await saveJob(withKey(token, "POST", "/api/extension/jobs", { ...input, priority: "high" }), ctx()),
+    );
+    expect(created).toMatchObject({ duplicate: false, job: { priority: "high", captureMethod: "extension" } });
+
+    const kept = await ok<UpsertResult>(
+      await saveJob(withKey(token, "POST", "/api/extension/jobs", { ...input, status: "applied" }), ctx()),
+    );
+    expect(kept).toMatchObject({ duplicate: true, job: { id: created.job.id, status: "applied", priority: "high" } });
+
+    const changed = await ok<UpsertResult>(
+      await saveJob(withKey(token, "POST", "/api/extension/jobs", { ...input, priority: "low" }), ctx()),
+    );
+    expect(changed).toMatchObject({ duplicate: true, job: { id: created.job.id, priority: "low" } });
+
+    await fails(await saveJob(withKey(token, "POST", "/api/extension/jobs", { ...input, priority: "urgent" }), ctx()), 400);
+  });
+
   /* ------------------------------------------------------- the demo */
 
   it("in the demo, the cookie routes answer 403 with a message and the key routes 401", async () => {

@@ -100,6 +100,7 @@ export type JobPatch = Partial<
     | "statusLocked"
     | "nextInterview"
     | "offerDeadline"
+    | "priority"
   >
 >;
 

@@ -34,6 +34,7 @@ function job(opts: {
     url: opts.url ?? null,
     description: "",
     status: last.to,
+    priority: "medium",
     statusSource: last.source,
     statusLocked: opts.locked ?? false,
     captureMethod: "extension",

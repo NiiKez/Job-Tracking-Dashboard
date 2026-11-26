@@ -144,6 +144,27 @@ describeDb("the API on the database", () => {
     await fails(await getJob(get(`/api/jobs/${job.id}`, cookie), ctx({ id: job.id })), 404, "Job not found");
   });
 
+  it("POST and PATCH /api/jobs take a priority: medium by default, 400 for an unknown one", async () => {
+    const input = { title: "Site Reliability Engineer", company: "Kettle & Co", status: "saved" };
+    const plain = await ok<UpsertResult>(await createJob(send("POST", "/api/jobs", cookie, input), ctx()));
+    expect(plain.job.priority).toBe("medium");
+    const high = await ok<UpsertResult>(
+      await createJob(send("POST", "/api/jobs", cookie, { ...input, title: "Data Engineer", priority: "high" }), ctx()),
+    );
+    expect(high).toMatchObject({ duplicate: false, job: { title: "Data Engineer", priority: "high" } });
+
+    const id = high.job.id;
+    const low = await ok<Job>(await patchJob(send("PATCH", `/api/jobs/${id}`, cookie, { priority: "low" }), ctx({ id })));
+    expect(low).toMatchObject({ id, priority: "low", status: "saved", statusLocked: false });
+    expect((await ok<JobWithEmails>(await getJob(get(`/api/jobs/${id}`, cookie), ctx({ id })))).priority).toBe("low");
+
+    for (const priority of ["urgent", "High", "", null, 1]) {
+      await fails(await patchJob(send("PATCH", `/api/jobs/${id}`, cookie, { priority }), ctx({ id })), 400, "Invalid request");
+      await fails(await createJob(send("POST", "/api/jobs", cookie, { ...input, priority }), ctx()), 400, "Invalid request");
+    }
+    expect((await ok<JobWithEmails>(await getJob(get(`/api/jobs/${id}`, cookie), ctx({ id })))).priority).toBe("low");
+  });
+
   it("GET /api/stats counts the seeded jobs and the emails waiting for review", async () => {
     await seed();
     const stats = await ok<Stats>(await getStats(get("/api/stats", cookie), ctx()));

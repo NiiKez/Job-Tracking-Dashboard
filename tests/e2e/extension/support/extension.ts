@@ -54,7 +54,7 @@ export interface Extension {
   /** chrome.storage.local: the connection and the last address used. */
   stored(): Promise<Stored>;
   /** The popup's unsaved edits for the page in this tab (chrome.storage.session), or null. */
-  draft(tabId: number): Promise<{ url: string; edits: Record<string, string> } | null>;
+  draft(tabId: number): Promise<{ url: string; edits: Record<string, string>; priority?: string } | null>;
 }
 
 /** The connection the `connection` fixture made. */

@@ -1,5 +1,5 @@
 import { daysSince, daysUntil, formatDate, formatWhen, plural } from "./format";
-import type { Job, Status } from "./types";
+import type { Job, Priority, Status } from "./types";
 
 /*
  * The pipeline as the dashboard shows it. Six statuses collapse into five
@@ -161,10 +161,21 @@ export function compareInStage(a: Job, b: Job): number {
   return cmp(b.lastActivityAt, a.lastActivityAt);
 }
 
-/** Jobs bucketed by stage, each bucket in `compareInStage` order. */
+/** Sort rank of a priority: High first. */
+export const PRIORITY_RANK: Record<Priority, number> = { high: 0, medium: 1, low: 2 };
+
+/** Higher priority first; equal priorities are a tie (0). */
+export function comparePriority(a: Pick<Job, "priority">, b: Pick<Job, "priority">) {
+  return PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
+}
+
+/**
+ * Jobs bucketed by stage. Inside each bucket higher priority always comes first, and `compare`
+ * (default `compareInStage`, or the list's chosen sort) orders jobs of the same priority.
+ */
 export function groupByStage(jobs: Job[], compare: (a: Job, b: Job) => number = compareInStage) {
   const out = Object.fromEntries(STAGES.map((s) => [s, [] as Job[]])) as Record<Stage, Job[]>;
   for (const job of jobs) out[stageOf(job.status)].push(job);
-  for (const s of STAGES) out[s].sort(compare);
+  for (const s of STAGES) out[s].sort((a, b) => comparePriority(a, b) || compare(a, b));
   return out;
 }

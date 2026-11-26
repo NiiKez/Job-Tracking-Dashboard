@@ -44,6 +44,7 @@ function mailbox() {
         url: null,
         description: "",
         status: e.status,
+        priority: "medium",
         statusSource: "email",
         statusLocked: false,
         captureMethod: "email",

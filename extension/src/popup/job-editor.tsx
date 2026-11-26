@@ -3,13 +3,14 @@ import { useJobFields } from "@/components/add-job/use-job-fields";
 import { formatDate } from "@/lib/format";
 import { statusSince } from "@/lib/stages";
 import { STATUS_META } from "@/lib/status";
-import type { Job, UpsertResult } from "@/lib/types";
+import type { Job, Priority, UpsertResult } from "@/lib/types";
 import { Bookmark, Info, Send } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { isDisconnected, type Api } from "../lib/api";
 import { clearDraft, saveDraft } from "../lib/storage";
 import type { TargetTab } from "../lib/tab";
 import { DescriptionField, TextField } from "./fields";
+import { priorityInput, PriorityControl, shownPriority } from "./priority";
 import { draftAddress, readJob, type ReadOutcome } from "./read-job";
 import { ErrorNotice, MOD_KEY, ScreenHeader, Spinner, useAnnounce } from "./ui";
 
@@ -19,6 +20,8 @@ import { ErrorNotice, MOD_KEY, ScreenHeader, Spinner, useAnnounce } from "./ui";
  * Keys: Enter in a one-line field saves as Saved (the default button, and the safe choice: it
  * never claims an application was sent). Ctrl+Enter (⌘+Enter on a Mac), anywhere in the form,
  * saves as Applied, as Ctrl+Enter submits the app's add-job dialog. Both buttons show their key.
+ *
+ * The priority sits beside Save and Applied (priority.tsx says what it shows and when it is sent).
  *
  * Edits are kept as a draft for this tab and page (storage.ts) while the popup is open, so
  * Escape or a click outside, which close a popup, lose nothing: opening it again on the same page
@@ -63,6 +66,8 @@ export function JobEditor({
   const announce = useAnnounce();
   const fields = useJobFields(firstRead.values);
   const [read, setRead] = useState(firstRead);
+  /** The priority the user picked (here or in an earlier opening); null: none, the tracker decides. */
+  const [chosenPriority, setChosenPriority] = useState<Priority | null>(firstRead.chosenPriority);
   const [rereading, setRereading] = useState(false);
   const [saving, setSaving] = useState<CaptureStatus | null>(null);
   const [saveError, setSaveError] = useState<{ error: unknown; status: CaptureStatus } | null>(null);
@@ -81,8 +86,8 @@ export function JobEditor({
     for (const name of JOB_FIELD_ORDER) {
       if (fields.values[name] !== read.initial[name]) edits[name] = fields.values[name];
     }
-    void saveDraft(tab.id, { url: address, edits });
-  }, [fields.values, read.initial, tab, address]);
+    void saveDraft(tab.id, { url: address, edits, ...priorityInput(chosenPriority) });
+  }, [fields.values, read.initial, chosenPriority, tab, address]);
 
   // Start on Title (from where Enter or Ctrl+Enter saves), or on Company when only that is missing.
   const focusField =
@@ -125,7 +130,7 @@ export function JobEditor({
     setSaveError(null);
     announce("Saving");
     try {
-      const result = await api.saveJob({ ...payload, status });
+      const result = await api.saveJob({ ...payload, status, ...priorityInput(chosenPriority) });
       if (tab) await clearDraft(tab.id);
       onSaved(result, status);
     } catch (error) {
@@ -233,6 +238,7 @@ export function JobEditor({
             retrying={!!saving}
           />
         )}
+        <PriorityControl value={shownPriority(chosenPriority, read.duplicateOf)} onChange={setChosenPriority} />
         <div className="actions">
           {/* First in the form, so Enter in a field presses it. */}
           <button type="submit" value="saved" className="button button-outline" aria-busy={saving === "saved" || undefined}>

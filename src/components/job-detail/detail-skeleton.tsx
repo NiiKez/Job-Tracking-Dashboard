@@ -6,7 +6,7 @@ export function JobDetailSkeleton({ variant }: { variant: "sheet" | "page" }) {
   const facts = (
     <div className="flex flex-col gap-3">
       <Skeleton className="h-3 w-16" />
-      {[0, 1, 2, 3, 4].map((i) => (
+      {[0, 1, 2, 3, 4, 5].map((i) => (
         <div key={i} className="flex items-center gap-4">
           <Skeleton className="h-4 w-24" />
           <Skeleton className={cn("h-4", i === 0 ? "w-36" : i % 2 ? "w-20" : "w-28")} />

@@ -181,6 +181,20 @@ async function seedExtensionKeys(sql: Sql, n: number, userId: string): Promise<v
       (${userId}, ${hash(2)}, 'Chrome on macOS', now() - interval '1 hour', NULL)`;
 }
 
+/**
+ * Rows the release with 0005_job_priority.sql writes for a user: a job picked as High in the
+ * extension popup, and one of the user's jobs moved down to Low on the dashboard.
+ */
+async function seedPriority(sql: Sql, n: number, userId: string): Promise<void> {
+  await sql`
+    INSERT INTO jobs (user_id, title, company, url, url_norm, company_slug, title_norm, search_text, status,
+                      priority, status_source, capture_method)
+    VALUES (${userId}, 'Data Engineer', 'Fjordline', ${`https://fjordline.example.com/jobs/${n}`},
+            ${`fjordline.example.com/jobs/${n}`}, 'fjordline', 'data engineer', 'fjordline data engineer', 'saved',
+            'high', 'extension', 'extension')`;
+  await sql`UPDATE jobs SET priority = 'low' WHERE user_id = ${userId} AND status = 'rejected'`;
+}
+
 /** SEEDS[name]: rows for a schema migrated up to and including `name`. */
 const SEEDS: Partial<Record<string, Seed>> = {
   "0001_core.sql": async (sql, n) => {
@@ -199,6 +213,13 @@ const SEEDS: Partial<Record<string, Seed>> = {
     await seedInbox(sql, n, userId);
     await seedBulk(sql, n, userId);
     await seedExtensionKeys(sql, n, userId);
+  },
+  "0005_job_priority.sql": async (sql, n) => {
+    const userId = await seedCore(sql, n);
+    await seedInbox(sql, n, userId);
+    await seedBulk(sql, n, userId);
+    await seedExtensionKeys(sql, n, userId);
+    await seedPriority(sql, n, userId);
   },
 };
 
@@ -244,6 +265,27 @@ const UPGRADES: Partial<Record<string, Upgrade>> = {
     expect([...keys]).toEqual([
       { label: "Chrome on Linux", used: true },
       { label: "Chrome on macOS", used: false },
+    ]);
+  },
+  "0005_job_priority.sql": async (sql) => {
+    // Jobs from before had no priority: all of them are Medium.
+    expect([...(await sql`SELECT DISTINCT priority FROM jobs`)]).toEqual([{ priority: "medium" }]);
+    // Only the three priorities, in lower case: anything else is refused by the check.
+    for (const priority of ["urgent", "High", ""]) {
+      await expect(sql`UPDATE jobs SET priority = ${priority}`).rejects.toMatchObject({
+        constraint_name: "jobs_priority_check",
+      });
+    }
+    await expect(sql`UPDATE jobs SET priority = NULL`).rejects.toMatchObject({ code: "23502" });
+    // A user from before picks priorities.
+    const [{ id: userId }] = await sql<{ id: string }[]>`SELECT id FROM users WHERE google_sub = 'upgrade-sub-1'`;
+    await seedPriority(sql, 1, userId);
+    const rows = await sql<{ title: string; priority: string }[]>`
+      SELECT title, priority FROM jobs WHERE user_id = ${userId} ORDER BY title`;
+    expect([...rows]).toEqual([
+      { title: "Data Engineer", priority: "high" },
+      { title: "Frontend Engineer", priority: "medium" },
+      { title: "Platform Engineer", priority: "low" },
     ]);
   },
 };

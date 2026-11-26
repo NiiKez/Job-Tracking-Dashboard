@@ -2,6 +2,7 @@
 
 import { ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
+import { PriorityMark } from "@/components/jobs/priority";
 import { RelativeTime } from "@/components/jobs/relative-time";
 import { compareInStage, groupByStage, STAGE_META, STAGES, type Stage } from "@/lib/stages";
 import type { Job } from "@/lib/types";
@@ -195,17 +196,20 @@ function TableRow({ job, onOpen }: { job: Job; onOpen: (id: string) => void }) {
       className="group/row cursor-pointer border-t transition-colors duration-150 nth-2:border-t-0 hover:bg-muted/50 has-[[data-row-open]:focus-visible]:bg-muted/50"
     >
       <td className="h-12 py-0 pr-3 pl-1 align-middle">
-        <button
-          type="button"
-          data-row-open
-          className={cn(
-            "block max-w-44 cursor-pointer truncate rounded-sm text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/25 @4xl:max-w-60",
-            job.status === "offer" ? "font-semibold" : "font-medium",
-            quiet && "font-normal text-muted-foreground",
-          )}
-        >
-          {job.company}
-        </button>
+        <div className="flex max-w-48 items-center gap-1.5 @4xl:max-w-64">
+          <button
+            type="button"
+            data-row-open
+            className={cn(
+              "block min-w-0 cursor-pointer truncate rounded-sm text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/25",
+              job.status === "offer" ? "font-semibold" : "font-medium",
+              quiet && "font-normal text-muted-foreground",
+            )}
+          >
+            {job.company}
+          </button>
+          <PriorityMark priority={job.priority} />
+        </div>
       </td>
       <td className="w-full max-w-0 px-3 align-middle text-muted-foreground">
         <span className="block truncate">{job.title}</span>
@@ -247,6 +251,7 @@ function StackedRow({ job, onOpen }: { job: Job; onOpen: (id: string) => void })
           <span className={cn("font-medium", quiet && "font-normal text-muted-foreground")}>
             {job.company}
           </span>
+          <PriorityMark priority={job.priority} tooltip={false} className="ml-1.5 align-[-2px]" />
           <span className="text-muted-foreground"> · {job.title}</span>
         </button>
         <StageMeta job={job} className="mt-0.5" />

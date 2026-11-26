@@ -165,7 +165,8 @@ test("a search that finds nothing says so, and Clear filters brings every job ba
   // The KPI row counts every job, whatever the search.
   await expect(page.getByText("1 job tracked.")).toBeVisible();
 
-  await page.getByRole("button", { name: "Clear filters" }).click();
+  // The toolbar's button; the empty state has one too.
+  await page.getByRole("button", { name: "Clear filters" }).first().click();
   await expect(card(column(page, "Saved"), "Parcelwerk", "Frontend Engineer")).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Search jobs by company or title" })).toHaveValue("");
   await expect(page).not.toHaveURL(/[?&]q=/);

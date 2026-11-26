@@ -3,7 +3,7 @@ import type { JobKeys } from "@/lib/domain/normalize";
 import type { Db, Tx } from "@/lib/server/db/client";
 import { isUuid, type JobRow } from "@/lib/server/db/rows";
 import { NotFoundError } from "@/lib/server/errors";
-import type { CaptureMethod, ChangeSource, Status } from "@/lib/types";
+import type { CaptureMethod, ChangeSource, Priority, Status } from "@/lib/types";
 
 /**
  * SQL for the jobs table. Every function takes the user's id and filters by it, so another
@@ -20,7 +20,7 @@ function columns(db: Db) {
   return db`
     id, title, company, location, url, description, url_norm, company_slug, title_norm,
     status, status_source, status_locked, capture_method, created_at, applied_at, updated_at,
-    last_activity_at, next_interview_at, next_interview_round, offer_deadline`;
+    last_activity_at, next_interview_at, next_interview_round, offer_deadline, priority`;
 }
 
 /** Escapes LIKE's wildcards (and its escape character) so the text matches literally. */
@@ -123,6 +123,7 @@ export interface NewJobRow {
   description: string;
   keys: JobKeys;
   status: Status;
+  priority: Priority;
   statusSource: ChangeSource;
   captureMethod: CaptureMethod;
   /**
@@ -138,11 +139,11 @@ export async function insertJobRow(tx: Tx, userId: string, job: NewJobRow): Prom
     INSERT INTO jobs (
       user_id, title, company, location, url, description,
       url_norm, company_slug, title_norm, search_text,
-      status, status_source, capture_method, created_at, applied_at, last_activity_at
+      status, priority, status_source, capture_method, created_at, applied_at, last_activity_at
     ) VALUES (
       ${userId}, ${job.title}, ${job.company}, ${job.location}, ${job.url}, ${job.description},
       ${job.keys.urlNorm}, ${job.keys.companySlug}, ${job.keys.titleNorm}, ${job.keys.searchText},
-      ${job.status}, ${job.statusSource}, ${job.captureMethod},
+      ${job.status}, ${job.priority}, ${job.statusSource}, ${job.captureMethod},
       coalesce(${job.at}::timestamptz, now()),
       CASE WHEN ${job.status}::text = 'applied' THEN coalesce(${job.at}::timestamptz, now()) END,
       coalesce(${job.at}::timestamptz, now())
@@ -160,6 +161,7 @@ export interface JobFields {
   description: string;
   /** jobKeys() of the url, company and title above. */
   keys: JobKeys;
+  priority: Priority;
   statusLocked: boolean;
   nextInterviewAt: Date | null;
   nextInterviewRound: string | null;
@@ -174,6 +176,7 @@ export function fieldsOfRow(row: JobRow): Omit<JobFields, "keys"> {
     location: row.location,
     url: row.url,
     description: row.description,
+    priority: row.priority,
     statusLocked: row.status_locked,
     nextInterviewAt: row.next_interview_at,
     nextInterviewRound: row.next_interview_round,
@@ -197,6 +200,7 @@ export async function updateJobFields(tx: Tx, userId: string, jobId: string, f: 
       company_slug = ${f.keys.companySlug},
       title_norm = ${f.keys.titleNorm},
       search_text = ${f.keys.searchText},
+      priority = ${f.priority},
       status_locked = ${f.statusLocked},
       next_interview_at = ${f.nextInterviewAt},
       next_interview_round = ${f.nextInterviewRound},

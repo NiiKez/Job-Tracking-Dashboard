@@ -470,6 +470,7 @@ function job(company: string, title: string, status: Status = "applied"): Job {
     url: null,
     description: "",
     status,
+    priority: "medium",
     statusSource: "manual",
     statusLocked: false,
     captureMethod: "paste",

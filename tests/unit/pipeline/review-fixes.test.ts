@@ -22,6 +22,7 @@ function job(id: string, company: string, title: string, status: Status, patch: 
     url: null,
     description: "",
     status,
+    priority: "medium",
     statusSource: "extension",
     statusLocked: false,
     captureMethod: "extension",

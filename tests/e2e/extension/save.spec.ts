@@ -1,7 +1,8 @@
 // Reading a job page and saving it, with the real extension connected (docs/plan/4-chrome-extension.md,
 // "Popup"): the page's JSON-LD read into the form, edits kept while the popup is closed, Applied,
 // the done screen and its link into the tracker, the duplicate notice and "Updated" (the form then
-// starts from the stored job), a tracker that can't be reached, and the footer.
+// starts from the stored job), the priority (picked when saving, shown and kept for a saved job), a
+// tracker that can't be reached, and the footer.
 import type { Job } from "@/lib/types";
 import { BASE_URL } from "../support/settings";
 import { connectedTest as test, expect, field, formReady, popupFooter, popupHeading } from "./support/extension";
@@ -44,12 +45,16 @@ test("reads a posting's JSON-LD, and Applied saves it with the user's edits", as
   // this tab and page, and come back over a fresh read.
   const company = "Larkspur Payments";
   await field(popup, "Company").fill(company);
-  await expect.poll(() => extension.draft(tabId)).toEqual({ url: CAREERS_JOB.url, edits: { company } });
+  await popup.getByRole("radio", { name: "High" }).check();
+  await expect
+    .poll(() => extension.draft(tabId))
+    .toEqual({ url: CAREERS_JOB.url, edits: { company }, priority: "high" });
   await popup.close();
   popup = await extension.openPopup(page);
   await formReady(popup);
   await expect(field(popup, "Company")).toHaveValue(company);
   await expect(field(popup, "Title")).toHaveValue(CAREERS_JOB.title);
+  await expect(popup.getByRole("radio", { name: "High" })).toBeChecked();
 
   await popup.getByRole("button", { name: "Applied", exact: true }).click();
   await expect(popupHeading(popup)).toHaveText("Marked as applied");
@@ -64,6 +69,7 @@ test("reads a posting's JSON-LD, and Applied saves it with the user's edits", as
     location: CAREERS_JOB.location,
     url: CAREERS_JOB.link,
     status: "applied",
+    priority: "high",
     captureMethod: "extension",
   });
   expect(job.description).toContain(CAREERS_JOB.descriptionLine);
@@ -113,6 +119,50 @@ test("opened again on a job it saved, the popup says so, and Save updates it", a
   const jobs = await api.get<Job[]>("/api/jobs");
   expect(jobs).toHaveLength(1);
   expect(jobs[0]).toMatchObject({ id: saved.id, status: "applied", captureMethod: "extension" });
+});
+
+test("the priority: Medium unless picked, picked by keys, and a saved job's kept unless changed", async ({
+  context,
+  page,
+  extension,
+  api,
+}) => {
+  await servePage(context, CAREERS_JOB.url, CAREERS_JOB.html);
+  await page.goto(CAREERS_JOB.url);
+  let popup = await extension.openPopup(page);
+  await formReady(popup);
+  const group = popup.getByRole("radiogroup", { name: "Priority" });
+  await expect(group.getByRole("radio")).toHaveCount(3);
+  await expect(group.getByRole("radio", { name: "Medium" })).toBeChecked();
+
+  // A radio group: Tab lands on the checked option, an arrow key moves and checks.
+  await group.getByRole("radio", { name: "Medium" }).focus();
+  await popup.keyboard.press("ArrowRight");
+  await expect(group.getByRole("radio", { name: "Low" })).toBeChecked();
+  await expect(group.getByRole("radio", { name: "Low" })).toBeFocused();
+  await popup.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(popupHeading(popup)).toHaveText("Saved");
+  expect(await api.get<Job[]>("/api/jobs")).toEqual([expect.objectContaining({ priority: "low" })]);
+  await popup.close();
+
+  // Opened again: the stored priority, which Save leaves alone when it isn't changed.
+  popup = await extension.openPopup(page);
+  await formReady(popup);
+  await expect(popup.getByRole("radio", { name: "Low" })).toBeChecked();
+  await popup.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(popupHeading(popup)).toHaveText("Updated");
+  expect(await api.get<Job[]>("/api/jobs")).toEqual([expect.objectContaining({ priority: "low" })]);
+  await popup.close();
+
+  // Changed, it is saved.
+  popup = await extension.openPopup(page);
+  await formReady(popup);
+  await popup.getByRole("radio", { name: "High" }).check();
+  await popup.getByRole("button", { name: "Applied", exact: true }).click();
+  await expect(popupHeading(popup)).toHaveText("Updated");
+  expect(await api.get<Job[]>("/api/jobs")).toEqual([
+    expect.objectContaining({ priority: "high", status: "applied" }),
+  ]);
 });
 
 test("a correction made when saving is kept when the same page is saved again", async ({

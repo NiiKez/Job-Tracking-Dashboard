@@ -11,8 +11,9 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { useAddJob } from "@/components/jobs/add-job-provider";
+import { PRIORITY_META } from "@/lib/priority";
 import { STATUS_META } from "@/lib/status";
-import type { Status } from "@/lib/types";
+import type { Priority, Status } from "@/lib/types";
 
 const FRAME = "min-h-80 rounded-lg border border-dashed bg-card";
 
@@ -41,30 +42,49 @@ export function EmptyDashboard() {
   );
 }
 
-function describeFilters(q: string, statuses: Status[]) {
-  const names = statuses.map((s) => STATUS_META[s].label);
-  const statusText =
-    names.length === 0
-      ? ""
-      : names.length === 1
-        ? names[0]
-        : `${names.slice(0, -1).join(", ")} or ${names[names.length - 1]}`;
-  if (q && statusText) return { title: `No ${statusText} jobs match “${q}”`, hint: "Try a shorter search or another status." };
-  if (q) return { title: `No jobs match “${q}”`, hint: "Search looks at company names and job titles." };
-  return { title: `No ${statusText} jobs`, hint: "Nothing has this status right now." };
+/** "Applied", "Applied or Interview", "Saved, Applied or Offer". */
+function either(names: string[]) {
+  return names.length <= 1
+    ? (names[0] ?? "")
+    : `${names.slice(0, -1).join(", ")} or ${names[names.length - 1]}`;
+}
+
+function describeFilters(q: string, statuses: Status[], priorities: Priority[]) {
+  const statusText = either(statuses.map((s) => STATUS_META[s].label));
+  // "high-priority", "high- or low-priority"
+  const levels = priorities.map((p) => PRIORITY_META[p].label.toLowerCase());
+  const priorityText = levels.length
+    ? `${either(levels.map((l, i) => (i < levels.length - 1 ? `${l}-` : l)))}-priority`
+    : "";
+  const what = [priorityText, statusText].filter(Boolean).join(" ");
+  if (q) {
+    return {
+      title: what ? `No ${what} jobs match “${q}”` : `No jobs match “${q}”`,
+      hint: what
+        ? "Try a shorter search or another filter."
+        : "Search looks at company names and job titles.",
+    };
+  }
+  if (statusText && priorityText) {
+    return { title: `No ${what} jobs`, hint: "Nothing has this status and priority right now." };
+  }
+  if (priorityText) return { title: `No ${what} jobs`, hint: "Nothing has this priority right now." };
+  return { title: `No ${what} jobs`, hint: "Nothing has this status right now." };
 }
 
 /** Filters are active but nothing matches. */
 export function NoResults({
   q,
   statuses,
+  priorities,
   onClear,
 }: {
   q: string;
   statuses: Status[];
+  priorities: Priority[];
   onClear: () => void;
 }) {
-  const { title, hint } = describeFilters(q, statuses);
+  const { title, hint } = describeFilters(q, statuses, priorities);
   return (
     <Empty className={FRAME}>
       <EmptyHeader>

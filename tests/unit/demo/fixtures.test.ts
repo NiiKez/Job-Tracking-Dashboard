@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildSeed } from "@/lib/server/demo/fixtures";
+import { compareInStage, groupByStage, STAGES, stageOf } from "@/lib/stages";
+import { PRIORITIES, type Priority } from "@/lib/types";
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
@@ -39,5 +41,32 @@ describe("buildSeed's dates", () => {
       const upcoming = buildSeed(now).jobs.flatMap((j) => [j.nextInterview?.at, j.offerDeadline]);
       for (const t of upcoming) if (t) expect(Date.parse(t)).toBeGreaterThan(now);
     }
+  });
+});
+
+describe("buildSeed's priorities", () => {
+  const now = new Date(2026, 10, 19, 12, 0).getTime();
+  const { jobs } = buildSeed(now);
+
+  it("uses all three priorities, mostly medium", () => {
+    const count = (p: Priority) => jobs.filter((j) => j.priority === p).length;
+    for (const p of PRIORITIES) expect(count(p), p).toBeGreaterThan(0);
+    expect(count("medium")).toBeGreaterThan(count("high"));
+    expect(count("medium")).toBeGreaterThan(count("low"));
+  });
+
+  it("has a high-priority job in Saved, Applied and Interview", () => {
+    for (const stage of ["saved", "applied", "interview"] as const) {
+      expect(jobs.some((j) => stageOf(j.status) === stage && j.priority === "high"), stage).toBe(true);
+    }
+  });
+
+  it("shows the priority sort: in some stage a high job comes before one the default order puts first", () => {
+    const columns = groupByStage(jobs);
+    const moved = STAGES.some((stage) => {
+      const byDefault = [...columns[stage]].sort(compareInStage);
+      return columns[stage][0]?.priority === "high" && byDefault[0] !== columns[stage][0];
+    });
+    expect(moved).toBe(true);
   });
 });

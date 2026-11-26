@@ -22,7 +22,7 @@ import { buildSeed } from "./fixtures";
  * links come out exactly as the app would make them. Only created_at and updated_at, which that
  * path stamps with now(), are set directly, so the demo jobs keep their dates in the past.
  *
- * What it writes: jobs (with their status events) and emails (linked, in review, or ignored).
+ * What it writes: jobs (with their status events and priority) and emails (linked, in review, or ignored).
  * Not the users row, the settings row, keyword rules, an inbox connection or a session: the
  * caller makes those (repo/users insertDefaults, inbox/repo ensureDemoConnection,
  * auth/session createSession), in the same transaction if it wants all or nothing.
@@ -125,6 +125,7 @@ async function storeJob(tx: Tx, userId: string, job: Job, emails: Email[], ids: 
       description: job.description,
       keys: jobKeys(job),
       status: first.to,
+      priority: job.priority,
       statusSource: first.source,
       captureMethod: job.captureMethod,
       at,
@@ -191,6 +192,8 @@ async function storeJob(tx: Tx, userId: string, job: Job, emails: Email[], ids: 
     location: job.location,
     url: job.url,
     description: job.description,
+    // A job found in mail starts at the default; this sets the fixture's priority for it too.
+    priority: job.priority,
     statusLocked: job.statusLocked,
     nextInterviewAt: job.nextInterview ? new Date(job.nextInterview.at) : null,
     nextInterviewRound: job.nextInterview ? job.nextInterview.round : null,

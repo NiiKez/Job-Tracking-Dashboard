@@ -1,8 +1,9 @@
 import { expect, it } from "vitest";
-import { getDb } from "@/lib/server/db/client";
+import { getDb, withTx } from "@/lib/server/db/client";
 import { BadRequestError, ConflictError, NotFoundError } from "@/lib/server/errors";
-import { jobPatchSchema } from "@/lib/server/schemas";
+import { jobInputSchema, jobPatchSchema } from "@/lib/server/schemas";
 import {
+  createJobFromEmail,
   deleteJob,
   getJob,
   listJobs,
@@ -213,6 +214,80 @@ describeDb("jobs service", () => {
       expect(again.status).toBe("interview");
       expect(again.history).toHaveLength(3);
     }
+  });
+
+  /* ------------------------------------------------------------ priority */
+
+  it("gives a new job medium priority unless one is picked", async () => {
+    const user = await createUser();
+    const plain = await makeJob(user, { title: "One" });
+    expect(plain.priority).toBe("medium");
+    const high = await makeJob(user, { title: "Two", priority: "high" });
+    expect(high.priority).toBe("high");
+    const [row] = await testSql()`SELECT priority FROM jobs WHERE id = ${high.id}`;
+    expect(row.priority).toBe("high");
+    expect((await loadJob(getDb(), user, high.id)).priority).toBe("high");
+  });
+
+  it("changes the priority by patch, leaving the status and its lock alone", async () => {
+    const user = await createUser();
+    const job = await makeJob(user, { status: "applied" });
+    const low = await updateJob(user, job.id, { priority: "low" });
+    expect(low).toMatchObject({ priority: "low", status: "applied", statusLocked: false });
+    expect(low.history).toHaveLength(1);
+    expect((await loadJob(getDb(), user, job.id)).priority).toBe("low");
+    // A patch without a priority keeps it.
+    expect((await updateJob(user, job.id, { title: "Renamed" })).priority).toBe("low");
+  });
+
+  it("refuses an unknown priority at the schema, and the database refuses one that gets past it", async () => {
+    expect(jobPatchSchema.safeParse({ priority: "urgent" }).success).toBe(false);
+    expect(jobPatchSchema.safeParse({ priority: "High" }).success).toBe(false);
+    expect(jobPatchSchema.safeParse({ priority: null }).success).toBe(false);
+    const input = { title: "T", company: "C", status: "saved" };
+    expect(jobInputSchema.safeParse({ ...input, priority: "urgent" }).success).toBe(false);
+    expect(jobInputSchema.parse(input).priority).toBeUndefined();
+
+    const user = await createUser();
+    const job = await makeJob(user);
+    await expect(updateJob(user, job.id, { priority: "urgent" as never })).rejects.toMatchObject({
+      constraint_name: "jobs_priority_check",
+    });
+    expect((await loadJob(getDb(), user, job.id)).priority).toBe("medium");
+  });
+
+  it("keeps a duplicate's priority unless the new input picks one", async () => {
+    const user = await createUser();
+    const first = await makeJob(user, { url: LINK, priority: "high" });
+    const input = {
+      title: "Frontend Engineer",
+      company: "Parcelwerk",
+      location: "",
+      url: LINK,
+      description: "",
+      status: "saved",
+      captureMethod: "extension",
+    } as const;
+    const kept = await upsertJob(user, input);
+    expect(kept).toMatchObject({ duplicate: true, job: { id: first.id, priority: "high" } });
+
+    const changed = await upsertJob(user, { ...input, priority: "low" });
+    expect(changed).toMatchObject({ duplicate: true, job: { id: first.id, priority: "low" } });
+    expect(await countRows("jobs")).toBe(1);
+  });
+
+  it("gives a job made from an email medium priority, and an email for an existing job keeps its own", async () => {
+    const user = await createUser();
+    const fromMail = await withTx((tx) =>
+      createJobFromEmail(tx, user, { company: "Bramble", title: "Product Designer", status: "applied", source: "email" }),
+    );
+    expect(fromMail).toMatchObject({ created: true, job: { priority: "medium", captureMethod: "email" } });
+
+    const mine = await makeJob(user, { company: "Fjordline", title: "Data Engineer", priority: "high" });
+    const again = await withTx((tx) =>
+      createJobFromEmail(tx, user, { company: "Fjordline", title: "Data Engineer", status: "applied", source: "email" }),
+    );
+    expect(again).toMatchObject({ created: false, job: { id: mine.id, priority: "high" } });
   });
 
   /* ------------------------------------------------------- status locks */

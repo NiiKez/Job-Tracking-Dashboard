@@ -14,6 +14,14 @@ export const STATUSES = [
 
 export type Status = (typeof STATUSES)[number];
 
+/** How much a job matters to the user. Inside each stage, higher priority comes first. */
+export const PRIORITIES = ["high", "medium", "low"] as const;
+
+export type Priority = (typeof PRIORITIES)[number];
+
+/** What a job gets when no priority is picked. */
+export const DEFAULT_PRIORITY: Priority = "medium";
+
 /** Who or what caused a status change. */
 export type ChangeSource =
   | "extension" // clicked Save / Applied in the Chrome extension
@@ -51,6 +59,8 @@ export interface Job {
   url: string | null;
   description: string;
   status: Status;
+  /** Set by hand (dashboard or extension); new jobs get DEFAULT_PRIORITY. */
+  priority: Priority;
   /** Source of the current status. */
   statusSource: ChangeSource;
   /** True after a manual change: emails won't move this job until unlocked. */
@@ -185,6 +195,8 @@ export interface JobInput {
   url: string | null;
   description: string;
   status: "saved" | "applied";
+  /** Omitted: a new job gets DEFAULT_PRIORITY, a duplicate keeps its own. */
+  priority?: Priority;
   captureMethod: Exclude<CaptureMethod, "email">;
 }
 

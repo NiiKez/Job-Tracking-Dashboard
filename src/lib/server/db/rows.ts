@@ -6,6 +6,7 @@ import type {
   EmailOutcome,
   Job,
   KeywordRule,
+  Priority,
   ReviewReason,
   Settings,
   Status,
@@ -31,6 +32,7 @@ export interface JobRow {
   company_slug: string;
   title_norm: string;
   status: Status;
+  priority: Priority;
   status_source: ChangeSource;
   status_locked: boolean;
   capture_method: CaptureMethod;
@@ -141,6 +143,7 @@ export function toJob(row: JobRow, history: StatusEvent[], emailCount: number): 
     url: row.url,
     description: row.description,
     status: row.status,
+    priority: row.priority,
     statusSource: row.status_source,
     statusLocked: row.status_locked,
     captureMethod: row.capture_method,

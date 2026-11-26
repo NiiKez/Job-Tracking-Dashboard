@@ -1,6 +1,7 @@
 "use client";
 
 import { RelativeTime } from "@/components/jobs/relative-time";
+import { PrioritySelect } from "@/components/jobs/priority";
 import { StatusBadge } from "@/components/jobs/status-badge";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { SOURCE_LABEL } from "@/lib/status";
@@ -27,8 +28,9 @@ function Muted({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * Status, the stage's key date, other dates and counts as a compact
- * definition list. Sources are spelled out as text, not icons.
+ * Status, priority (changed right here), the stage's key date, other dates
+ * and counts as a compact definition list. Sources are spelled out as text,
+ * not icons.
  */
 export function JobFacts({ job }: { job: JobWithEmails }) {
   const emailCount = job.emails.length;
@@ -40,6 +42,9 @@ export function JobFacts({ job }: { job: JobWithEmails }) {
           {SOURCE_LABEL[job.statusSource]}
           {job.statusLocked && " · emails won’t change it"}
         </Muted>
+      </Row>
+      <Row label="Priority">
+        <PrioritySelect job={job} />
       </Row>
       {job.status === "interview" && (
         <Row label="Next interview">

@@ -1,8 +1,9 @@
 import "server-only";
 import { z } from "zod";
-import { STATUSES } from "@/lib/types";
+import { PRIORITIES, STATUSES } from "@/lib/types";
 
 export const statusSchema = z.enum(STATUSES);
+export const prioritySchema = z.enum(PRIORITIES);
 export const ruleStatusSchema = z.enum(["applied", "interview", "offer", "rejected"]);
 
 /**
@@ -23,6 +24,7 @@ export const jobInputSchema = z.object({
   url: jobUrlSchema.default(null),
   description: z.string().max(50_000).default(""),
   status: z.enum(["saved", "applied"]),
+  priority: prioritySchema.optional(),
   captureMethod: z.enum(["extension", "paste"]).default("paste"),
 });
 
@@ -34,6 +36,7 @@ export const jobPatchSchema = z
     url: jobUrlSchema,
     description: z.string().max(50_000),
     status: statusSchema,
+    priority: prioritySchema,
     statusLocked: z.boolean(),
     nextInterview: z
       .object({ at: z.iso.datetime(), round: z.string().trim().max(80) })

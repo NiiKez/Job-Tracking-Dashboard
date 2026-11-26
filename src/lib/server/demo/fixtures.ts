@@ -1,5 +1,6 @@
 import "server-only";
-import type { ChangeSource, Email, EmailOutcome, Job, ReviewReason, Status } from "@/lib/types";
+import { DEFAULT_PRIORITY } from "@/lib/types";
+import type { ChangeSource, Email, EmailOutcome, Job, Priority, ReviewReason, Status } from "@/lib/types";
 
 /**
  * The demo jobs and emails: what seedUser (seed.ts) writes into the public demo's workspaces and
@@ -14,8 +15,9 @@ import type { ChangeSource, Email, EmailOutcome, Job, ReviewReason, Status } fro
  *                   happened is dated in the future and the gaps between items stay as they are
  *   EMAILS          the emails by key, before they are dated
  *
- * Plain data with type imports only: no database, no I/O, nothing done at import time but
- * building these constants. Times are set with the server's local clock (Date#setHours).
+ * Plain data with imports from lib/types only (types and DEFAULT_PRIORITY): no database, no
+ * I/O, nothing done at import time but building these constants. Times are set with the
+ * server's local clock (Date#setHours).
  */
 
 /* All companies, people and addresses below are fictional demo data. */
@@ -74,6 +76,8 @@ interface SeedJob {
   location: string;
   url: string | null;
   captureMethod: Job["captureMethod"];
+  /** DEFAULT_PRIORITY (medium) when left out. */
+  priority?: Priority;
   locked?: boolean;
   events: SeedEvent[];
   description: string;
@@ -161,6 +165,7 @@ const JOBS: SeedJob[] = [
     location: "Munich",
     url: "https://fernweh-mobility.jobs.personio.de/job/1183022",
     captureMethod: "paste",
+    priority: "high",
     events: [
       { to: "saved", daysAgo: 27, source: "paste" },
       { to: "applied", daysAgo: 21, source: "manual" },
@@ -201,6 +206,7 @@ const JOBS: SeedJob[] = [
     location: "Zurich",
     url: "https://halcyon.wd3.myworkdayjobs.com/careers/job/Zurich/software-engineer-web-platform_R-2291",
     captureMethod: "extension",
+    priority: "high",
     events: [
       { to: "applied", daysAgo: 45, source: "extension" },
       { to: "interview", daysAgo: 31, source: "email", email: "halcyon-invite" },
@@ -239,6 +245,7 @@ const JOBS: SeedJob[] = [
     location: "Remote",
     url: "https://jobs.lever.co/quarry/1c9d-typescript-engineer",
     captureMethod: "paste",
+    priority: "high",
     events: [{ to: "saved", daysAgo: 4, source: "paste" }],
     description: describe({
       company: "Quarry Systems",
@@ -291,6 +298,7 @@ const JOBS: SeedJob[] = [
     location: "Vienna",
     url: "https://moss-studio.example/jobs/ui-engineer",
     captureMethod: "paste",
+    priority: "low",
     events: [
       { to: "applied", daysAgo: 52, source: "paste" },
       { to: "no_response", daysAgo: 22, source: "time", note: "No reply in 30 days" },
@@ -310,6 +318,7 @@ const JOBS: SeedJob[] = [
     location: "Cologne",
     url: "https://parcelwerk.jobs.personio.de/job/994120",
     captureMethod: "extension",
+    priority: "low",
     events: [
       { to: "applied", daysAgo: 40, source: "extension" },
       { to: "rejected", daysAgo: 26, source: "email", email: "parcelwerk-reject" },
@@ -422,6 +431,7 @@ const JOBS: SeedJob[] = [
     location: "Rotterdam",
     url: null,
     captureMethod: "email",
+    priority: "low",
     events: [
       { to: "applied", daysAgo: 7, source: "email", email: "atlas-confirm", note: "Created from a confirmation email" },
     ],
@@ -453,6 +463,7 @@ const JOBS: SeedJob[] = [
     location: "Stockholm",
     url: "https://kinfolkgames.example/careers/web-engineer-tools",
     captureMethod: "extension",
+    priority: "high",
     events: [
       { to: "applied", daysAgo: 38, source: "extension" },
       { to: "interview", daysAgo: 24, source: "email", email: "kinfolk-invite" },
@@ -492,6 +503,7 @@ const JOBS: SeedJob[] = [
     location: "London",
     url: "https://boards.greenhouse.io/emberfinance/jobs/3301877",
     captureMethod: "extension",
+    priority: "high",
     events: [{ to: "applied", daysAgo: 6, source: "extension" }],
     description: describe({
       company: "Ember Finance",
@@ -508,6 +520,7 @@ const JOBS: SeedJob[] = [
     location: "Leipzig",
     url: "https://hollowpine.jobs.personio.de/job/552108",
     captureMethod: "extension",
+    priority: "low",
     events: [{ to: "saved", daysAgo: 0, source: "extension" }],
     description: describe({
       company: "Hollow Pine",
@@ -524,6 +537,7 @@ const JOBS: SeedJob[] = [
     location: "Berlin",
     url: "https://boards.greenhouse.io/juniperlearning/jobs/7710991",
     captureMethod: "extension",
+    priority: "low",
     locked: true,
     events: [
       { to: "applied", daysAgo: 25, source: "extension" },
@@ -984,6 +998,7 @@ function buildSeedAt(past: number, now: number): SeedData {
       url: j.url,
       description: j.description,
       status: last.to,
+      priority: j.priority ?? DEFAULT_PRIORITY,
       statusSource: last.source,
       statusLocked: j.locked ?? false,
       captureMethod: j.captureMethod,

@@ -4,7 +4,7 @@ import {
   type JobFieldName,
   type JobFieldValues,
 } from "@/components/add-job/job-form";
-import type { Job, PageSnapshot } from "@/lib/types";
+import type { Job, PageSnapshot, Priority } from "@/lib/types";
 import { isDisconnected, type Api } from "../lib/api";
 import { readDraft } from "../lib/storage";
 import { readTab, webAddress, type TargetTab } from "../lib/tab";
@@ -20,7 +20,8 @@ import { readTab, webAddress, type TargetTab } from "../lib/tab";
  * - the key routes' 401 (the key was refused) is the one failure that is thrown: the popup
  *   forgets the connection.
  *
- * A job the tracker already has starts from what the tracker stored (fromStoredJob).
+ * A job the tracker already has starts from what the tracker stored (fromStoredJob), and shows
+ * its stored priority (priority.tsx).
  */
 
 export type ReadNotice =
@@ -39,6 +40,8 @@ export interface ReadOutcome {
   missing: JobFieldName[];
   duplicateOf: Job | null;
   notice: ReadNotice | null;
+  /** The priority picked in an earlier opening of the popup on this page; null when none was. */
+  chosenPriority: Priority | null;
 }
 
 /** The page's address as tabs report it; drafts are kept per tab and address. */
@@ -49,7 +52,7 @@ export function draftAddress(tab: TargetTab | null) {
 /** Empty fields, but the tab's link when it is a web page: the form when nothing could be read. */
 export function emptyRead(tab: TargetTab | null, notice: ReadNotice): ReadOutcome {
   const initial = { ...EMPTY_JOB_FIELDS, url: (tab && webAddress(tab)) ?? "" };
-  return { initial, values: initial, missing: [], duplicateOf: null, notice };
+  return { initial, values: initial, missing: [], duplicateOf: null, notice, chosenPriority: null };
 }
 
 /**
@@ -110,7 +113,10 @@ function fromSnapshot(snapshot: PageSnapshot): JobFieldValues {
   };
 }
 
-async function readFields(api: Api, tab: TargetTab | null): Promise<Omit<ReadOutcome, "values">> {
+async function readFields(
+  api: Api,
+  tab: TargetTab | null,
+): Promise<Omit<ReadOutcome, "values" | "chosenPriority">> {
   const snapshot = tab ? await readTab(tab) : null;
   if (!snapshot) return emptyRead(tab, { kind: "unreadable" });
   try {
@@ -142,11 +148,11 @@ async function readFields(api: Api, tab: TargetTab | null): Promise<Omit<ReadOut
 export async function readJob(api: Api, tab: TargetTab | null): Promise<ReadOutcome> {
   const read = await readFields(api, tab);
   const address = draftAddress(tab);
-  const edits = tab && address ? await readDraft(tab.id, address) : null;
+  const draft = tab && address ? await readDraft(tab.id, address) : null;
   const values = { ...read.initial };
   for (const name of Object.keys(values) as JobFieldName[]) {
-    const edited = edits?.[name];
+    const edited = draft?.edits[name];
     if (edited !== undefined) values[name] = edited;
   }
-  return { ...read, values };
+  return { ...read, values, chosenPriority: draft?.priority ?? null };
 }

@@ -215,6 +215,90 @@ describe("withdrawn site access", () => {
   });
 });
 
+describe("priority", () => {
+  const filled = (): ReadOutcome => ({
+    ...emptyRead(tab, { kind: "unreadable" }),
+    values: { title: "Engineer", company: "Acme", location: "", url: PAGE, description: "" },
+  });
+  const radio = (label: string) =>
+    [...host.querySelectorAll<HTMLInputElement>('input[type="radio"]')].find(
+      (input) => input.closest("label")?.textContent === label,
+    )!;
+  const checked = () => host.querySelector<HTMLInputElement>('input[type="radio"]:checked')?.closest("label")?.textContent;
+  const saved = (api: Api & { saveJob: ReturnType<typeof vi.fn> }) => api.saveJob.mock.calls[0][0] as Record<string, unknown>;
+  const savingApi = () => fakeApi({ saveJob: vi.fn(async () => ({ job, duplicate: false })) });
+
+  it("is a radio group labelled Priority, on Medium for a new job", () => {
+    render(editor(fakeApi(), filled()));
+    const group = host.querySelector('[role="radiogroup"]')!;
+    expect(document.getElementById(group.getAttribute("aria-labelledby")!)?.textContent).toBe("Priority");
+    expect([...group.querySelectorAll("label")].map((l) => l.textContent)).toEqual(["High", "Medium", "Low"]);
+    expect(checked()).toBe("Medium");
+  });
+
+  it("sends no priority when none was picked: the tracker gives a new job Medium, and keeps a known job's", async () => {
+    const api = savingApi();
+    render(editor(api, filled()));
+    await act(async () => button("Save")!.click());
+    await settle();
+    expect(saved(api)).toMatchObject({ title: "Engineer", status: "saved" });
+    expect(saved(api)).not.toHaveProperty("priority");
+  });
+
+  it("sends the priority picked, and keeps it in the draft until saved", async () => {
+    const api = savingApi();
+    render(editor(api, filled()));
+    act(() => radio("High").click());
+    await settle();
+    expect(checked()).toBe("High");
+    expect(chromeApi.storage.session.dump()["draft:7"]).toMatchObject({ url: PAGE, priority: "high" });
+
+    await act(async () => button("Applied")!.click());
+    await settle();
+    expect(saved(api)).toMatchObject({ status: "applied", priority: "high" });
+    expect(chromeApi.storage.session.dump()["draft:7"]).toBeUndefined();
+  });
+
+  it("shows a known job's stored priority, and leaves it alone unless another is picked", async () => {
+    const duplicate = { ...job, status: "applied", priority: "low", history: [], appliedAt: null, createdAt: "2026-11-02T10:00:00Z", updatedAt: "2026-11-02T10:00:00Z" } as Job;
+    const read = { ...filled(), duplicateOf: duplicate };
+    const api = savingApi();
+    render(editor(api, read));
+    expect(checked()).toBe("Low");
+    await act(async () => button("Save")!.click());
+    await settle();
+    expect(saved(api)).not.toHaveProperty("priority");
+
+    const again = savingApi();
+    act(() => root.unmount());
+    root = createRoot(host);
+    render(editor(again, read));
+    act(() => radio("Medium").click());
+    await act(async () => button("Save")!.click());
+    await settle();
+    expect(saved(again)).toMatchObject({ priority: "medium" });
+  });
+
+  it("starts on the priority picked in an earlier opening, and sends it", async () => {
+    const api = savingApi();
+    render(editor(api, { ...filled(), chosenPriority: "high" }));
+    expect(checked()).toBe("High");
+    await act(async () => button("Save")!.click());
+    await settle();
+    expect(saved(api)).toMatchObject({ priority: "high" });
+  });
+
+  it("on a known job, a priority picked in an earlier opening wins over the stored one", async () => {
+    const duplicate = { ...job, status: "saved", priority: "low", history: [], appliedAt: null, createdAt: "2026-11-02T10:00:00Z", updatedAt: "2026-11-02T10:00:00Z" } as Job;
+    const api = savingApi();
+    render(editor(api, { ...filled(), duplicateOf: duplicate, chosenPriority: "high" }));
+    expect(checked()).toBe("High");
+    await act(async () => button("Save")!.click());
+    await settle();
+    expect(saved(api)).toMatchObject({ priority: "high" });
+  });
+});
+
 describe("focus and announcements", () => {
   it("Hide description gives the focus to the button that shows it again", async () => {
     render(editor(fakeApi(), emptyRead(tab, { kind: "unreadable" })));

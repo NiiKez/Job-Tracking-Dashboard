@@ -24,7 +24,9 @@ import { useMemo, useState, type PointerEvent, type TouchEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAddJob } from "@/components/jobs/add-job-provider";
+import { PriorityMark } from "@/components/jobs/priority";
 import { formatDate } from "@/lib/format";
+import { priorityNote } from "@/lib/priority";
 import { groupByStage, STAGE_META, STAGES, stageOf, statusSince, type Stage } from "@/lib/stages";
 import { STATUS_META } from "@/lib/status";
 import type { Job, Status } from "@/lib/types";
@@ -487,9 +489,17 @@ function ClosedRow({ job, onOpen }: { job: Job; onOpen: (id: string) => void }) 
         isDragging && "opacity-40",
       )}
     >
-      <OpenOverlay job={job} dnd={dnd} onOpen={onOpen} label={`${job.company}, ${job.title}. ${line}`} />
-      <p className="truncate pr-6 text-meta font-semibold" title={job.company}>
-        {job.company}
+      <OpenOverlay
+        job={job}
+        dnd={dnd}
+        onOpen={onOpen}
+        label={`${job.company}, ${job.title}. ${priorityNote(job.priority)}${line}`}
+      />
+      <p className="flex min-w-0 items-center gap-1.5 pr-6 text-meta font-semibold">
+        <span className="truncate" title={job.company}>
+          {job.company}
+        </span>
+        <PriorityMark priority={job.priority} className="relative z-10" onClick={() => onOpen(job.id)} />
       </p>
       <p className="mt-0.5 text-xs leading-4 text-muted-foreground tabular">
         {job.title}. {line}
